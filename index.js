@@ -33,11 +33,18 @@ server.get("/:contentModelZUID/items",  async (req, res) => {
 })
 
 server.post("/createItem", async (req, res) => {
+    const modelZUID = "6-61f43c-wbmxb6";
+
     try {
+
+        // Get XML file via FTP
+        // Parse XML file
+        // Build Payload
+        // Send Payload to instanceß
+
         const xml = `<title>Hello xml2js!</title>`;
         const xmlToJSON = await parseLib.parse(xml);
         console.log(xmlToJSON)
-        const modelZUID = "6-61f43c-wbmxb6";
 
         const payload = {
             web: {
