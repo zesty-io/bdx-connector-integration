@@ -1,5 +1,3 @@
-const parseString = require('xml2js').parseString;
-
 require("dotenv").config()
 
 const server = require("express")();
@@ -25,18 +23,8 @@ server.use(
     })
 );
 
-server.use(bodyParser.json())
-
 server.get("/:contentModelZUID/items",  async (req, res) => {
-    const items = await req.app.locals.zesty.instance.getItems(req.params.contentModelZUID)
-    res.send(items.data)
-})
-
-server.post("/createItem", async (req, res) => {
-    const modelZUID = "6-61f43c-wbmxb6";
-
     try {
-
         // Get XML file via FTP
         // Parse XML file
         // Build Payload
@@ -69,13 +57,3 @@ server.post("/createItem", async (req, res) => {
 server.listen(process.env.PORT, () => {
     console.log(`Server started on port ${process.env.PORT}`);
 })
-
-fs.readFile("./planspec.xml", (err, data) => {
-    if (err) throw err;
-    parseLib.parse(data).then(output => {
-        console.log(output.Builders.Corporation)
-    });
-    
-})
-
-
