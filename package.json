@@ -4,17 +4,20 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "nyc ava lib/",
     "start": "node index.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@zesty-io/sdk-express-middleware": "0.0.5",
-    "ava": "^1.4.1",
     "dotenv": "^7.0.0",
     "express": "^4.16.4",
     "ftp": "^0.3.10",
     "xml2js": "^0.4.19"
+  },
+  "devDependencies": {
+    "ava": "^1.4.1",
+    "nyc": "^13.3.0"
   }
 }
