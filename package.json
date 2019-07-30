@@ -11,10 +11,17 @@
   "license": "ISC",
   "dependencies": {
     "@zesty-io/sdk-express-middleware": "0.0.5",
+    "basic-ftp": "^3.8.0",
+    "cors": "^2.8.5",
     "dotenv": "^7.0.0",
-    "express": "^4.16.4",
+    "env-yaml": "^0.1.2",
+    "express": "^4.17.1",
+    "fs": "0.0.1-security",
     "ftp": "^0.3.10",
-    "xml2js": "^0.4.19"
+    "request": "^2.88.0",
+    "xml-js": "^1.6.11",
+    "xml2js": "^0.4.19",
+    "zestyio-api-wrapper": "^0.2.1"
   },
   "devDependencies": {
     "ava": "^1.4.1",
