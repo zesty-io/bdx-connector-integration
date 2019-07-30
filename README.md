@@ -2,10 +2,6 @@
 
 Makes an FTP connection to a customers BDX ftp account, pulls the XML files, and imports them into a specific content model.
 
-Post request, requires 
-ftp host
-instanceZUID
-
 
 **Endpoints**
 
@@ -17,6 +13,14 @@ instanceZUID
 
 install functions (google's test package)
 
+`npm install`
+
+NPM deploy scripts
+
+`npm run deploy:local`
+`npm run deploy:dev`
+`npm run deploy:stage`
+`npm run deploy:prod`
 
 
 
