@@ -4,8 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "nyc ava lib/",
-    "start": "node index.js"
+    "test": "node test.js",
+    "deploy:local": "functions deploy bdxIntegration --env-vars-file .env.yaml --trigger-http --timeout=240s",
+    "deploy:dev": "gcloud functions deploy bdxIntegration --env-vars-file .env.yaml --trigger-http --timeout=240s --project=zesty-dev --runtime=nodejs8 --memory=256mb",
+    "deploy:stage": "gcloud functions deploy bdxIntegration --env-vars-file .env.yaml --trigger-http --timeout=240s --project=zesty-stage --runtime=nodejs8 --memory=256mb",
+    "deploy:prod": "gcloud functions deploy bdxIntegration --env-vars-file .env.yaml --trigger-http --timeout=240s --project=zesty-prod --runtime=nodejs8 --memory=256mb"
   },
   "author": "",
   "license": "ISC",
