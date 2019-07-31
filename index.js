@@ -1,7 +1,9 @@
 
 const request = require('request')
 const zestyAPI = require('zestyio-api-wrapper')
+const fs  = require('fs')
 require('env-yaml').config()
+
 
 exports.bdxIntegration = (req, res) => {
   const cors = require('cors')()
@@ -14,92 +16,40 @@ exports.bdxIntegration = (req, res) => {
 
 
 const exportBDXIntegration = async (req, res) => {
+    var preparedPostBodies = {
+            message: 'hello',
+            fullResponse: {},
+            homeModelItems: []
+        }
+    
     // connect to bdx and download the xml file, ideally the user/host/pass woudl be taken from zesty setting
     try {
         await connectToFTPandDownloadXML(process.env.FTPHOST,process.env.FTPUSER, process.env.FTPPASS)
     } catch(err) {
-        console.log("Failed to connect to the FTP: " + err)
+        res.send("Failed to connect to the FTP: " + err)
     }     
-    
-    let parsedJSON
-    // read the downloaded file, cnvert the xml to JSON
+    // read the downloaded file, convert the xml to JSON
     try {
-        parsedJSON = await readXMLasJSON('/tmp/bdx.xml')
-    } catch(err) {
-        console.log("Failed to read the XML file: " + err)
-    }     
-
-    // iterate through the parsed json to build  
-     try {
         //parsedJSON.Builders.Corporation.Builder.Subdivision.SubImage // array
         //parsedJSON.Builders.Corporation.Builder.Subdivision.Plan // array
-        let plansArray = parsedJSON.Builders.Corporation.Builder.Subdivision.Plan
-        let preparedPlans = []
+        preparedPostBodies.fullResponse = await xmlToObject('/tmp/bdx.xml')
         
+    } catch(err) {
+        res.send("Failed to read the XML file: " + err)
+    }     
+    
+    // iterate through the parsed json to build the post bodies  
+     try {
 
+        preparedPostBodies.homeModelItems = await parseBDXPlans(preparedPostBodies.fullResponse)
 
-        for (index = 0; index < plansArray.length; index++) { 
-            
-            let o = plansArray[index]
-            //console.log(o.PlanName._text); 
-            let mainImage, floorPlanImage1, floorPlanImage2 = ""
-
-            if (o.hasOwnProperty('PlanImages')){
-                mainImage = o.PlanImages.hasOwnProperty('ElevationImage') ? o.PlanImages.ElevationImage._text : ""
-                if(Array.isArray(o.PlanImages.ElevationImage)){
-                    mainImage = o.PlanImages.ElevationImage[0]._text
-                }
-                if(Array.isArray(o.PlanImages.FloorPlanImage)){
-                    floorPlanImage1 = o.PlanImages.FloorPlanImage[0]._text
-                    floorPlanImage2 = o.PlanImages.FloorPlanImage[1]._text
-                }
-            }
-
-            let halfBaths = o.hasOwnProperty('HalfBaths') ? o.HalfBaths._text : 0;
-            let stories = o.hasOwnProperty('Stories') ? o.Stories._text : 1;
-            if(o.hasOwnProperty('Spec')){
-                halfBaths = o.Spec.hasOwnProperty('SpecHalfBaths') ? o.Spec.SpecHalfBaths._text : halfBaths;
-                stories = o.Spec.hasOwnProperty('SpecStories') ?  o.Spec.SpecStories._text : stories;
-            }
-           
-
-            let planObject = {
-                'plan_id': o._attributes.PlanID,
-                'plan_name' : o.PlanName._text,
-                'marketing_headline' : o.MarketingHeadline._text,
-                'main_image' :mainImage,
-                'base_price': Math.round(o.BasePrice._text),
-                'bedrooms': o.Bedrooms._text,
-                'baths': o.Baths._text,
-                'half_baths': halfBaths,
-                'garage': o.Garage._text,
-                'stories': stories,
-                'square_footage' : o.BaseSqft._text,
-                'builder' : parsedJSON.Builders.Corporation.Builder.BrandName._text,
-                'plan_type': unCamelCase(o._attributes.Type),
-                'floor_plan_1': floorPlanImage1,
-                'floor_plan_2': floorPlanImage2,
-                'description' : o.Description._cdata
-
-            }
-            let apiPostBody = {
-                'content': planObject,
-                'meta': {
-                    'path_part': slugify(planObject.plan_name)
-                }
-            }
-
-            preparedPlans.push(apiPostBody)
-        } 
-
-
-        res.send(parsedJSON.Builders.Corporation.Builder) //parsedJSON.Builders.Corporation.Builder.Subdivision.Plan); //parsedJSON.Builders.Corporation.Builder.Subdivision.SubImage.Plan);
-
-        //await client.upload(fs.createReadStream("README.md"), "README.md")
+        res.send(preparedPostBodies)
     }
     catch(err) {
-        console.log(err)
+        res.send(err)
     }
+
+    
     
 }
 
@@ -126,9 +76,76 @@ function slugify(string) {
     .replace(/-+$/, '') // Trim - from end of text
 }
 
-async function readXMLasJSON(pathToFile){
+async function parseBDXPlans(bdxObj){
+    try {
+        let preparedPlans = []
+
+        for (index = 0; index < bdxObj.Builders.Corporation.Builder.Subdivision.Plan.length; index++) { 
+            
+            let o = bdxObj.Builders.Corporation.Builder.Subdivision.Plan[index]
+            //console.log(o.PlanName._text); 
+            let mainImage, floorPlanImage1, floorPlanImage2 = ""
+
+            if (o.hasOwnProperty('PlanImages')){
+                mainImage = o.PlanImages.hasOwnProperty('ElevationImage') ? o.PlanImages.ElevationImage._text : ""
+                if(Array.isArray(o.PlanImages.ElevationImage)){
+                    mainImage = o.PlanImages.ElevationImage[0]._text
+                }
+                if(Array.isArray(o.PlanImages.FloorPlanImage)){
+                    floorPlanImage1 = o.PlanImages.FloorPlanImage[0]._text
+                    floorPlanImage2 = o.PlanImages.FloorPlanImage[1]._text
+                }
+            }
+
+            let halfBaths = o.hasOwnProperty('HalfBaths') ? o.HalfBaths._text : 0;
+            let stories = o.hasOwnProperty('Stories') ? o.Stories._text : 1;
+            if(o.hasOwnProperty('Spec')){
+                halfBaths = o.Spec.hasOwnProperty('SpecHalfBaths') ? o.Spec.SpecHalfBaths._text : halfBaths;
+                stories = o.Spec.hasOwnProperty('SpecStories') ?  o.Spec.SpecStories._text : stories;
+            }
+            
+
+            let planObject = {
+                'plan_id': o._attributes.PlanID,
+                'plan_name' : o.PlanName._text,
+                'marketing_headline' : o.MarketingHeadline._text,
+                'main_image' :mainImage,
+                'base_price': Math.round(o.BasePrice._text),
+                'bedrooms': o.Bedrooms._text,
+                'baths': o.Baths._text,
+                'half_baths': halfBaths,
+                'garage': o.Garage._text,
+                'stories': stories,
+                'square_footage' : o.BaseSqft._text,
+                'builder' : bdxObj.Builders.Corporation.Builder.BrandName._text,
+                'plan_type': unCamelCase(o._attributes.Type),
+                'floor_plan_1': floorPlanImage1,
+                'floor_plan_2': floorPlanImage2,
+                'description' : o.Description._cdata
+
+            }
+            let apiPostBody = {
+                'content': planObject,
+                'meta': {
+                    'path_part': slugify(planObject.plan_name)
+                }
+            }
+
+            preparedPlans.push(apiPostBody)
+        } 
+
+        return preparedPlans
+        
+    } catch(err){
+        console.log(err)
+    }
+
+    
+}
+
+async function xmlToObject(pathToFile){
     var convert = require('xml-js');
-    var xml = require('fs').readFileSync(pathToFile, 'utf8');
+    var xml = fs.readFileSync(pathToFile, 'utf8');
     var options = {compact: true};
     return convert.xml2js(xml, options); 
 }
@@ -136,6 +153,7 @@ async function readXMLasJSON(pathToFile){
 async function connectToFTPandDownloadXML(host, user, pass){
     
     const ftp = require("basic-ftp")
+    
     const client = new ftp.Client()
     client.ftp.verbose = false
     try {
