@@ -1,8 +1,6 @@
 
 const request = require('request')
 const zestyAPI = require('zestyio-api-wrapper')
-
-const fs = require("fs")
 require('env-yaml').config()
 
 exports.bdxIntegration = (req, res) => {
@@ -13,42 +11,26 @@ exports.bdxIntegration = (req, res) => {
   })
 }
 
-async function connectToFTPandDownloadXML(host, user, pass){
-    
-    const ftp = require("basic-ftp")
-    const client = new ftp.Client()
-    client.ftp.verbose = false
-    try {
-        await client.access({
-            host: host,
-            user: user,
-            password: pass,
-            secure: false
-        })
-        let list = await client.list()
-        let writableStream = ""
-        let remoteFilename = list[0].name;
-         
-        await client.download(fs.createWriteStream("/tmp/bdx.xml"), remoteFilename).catch(err => {
-            console.log(err.toString());
-        })
-        client.close() // close ftp connection
 
-    } catch(err) {
-        console.log(err)
-    }   
-}
 
 const exportBDXIntegration = async (req, res) => {
-    //console.log('running')
+    // connect to bdx and download the xml file, ideally the user/host/pass woudl be taken from zesty setting
     try {
         await connectToFTPandDownloadXML(process.env.FTPHOST,process.env.FTPUSER, process.env.FTPPASS)
-       
-       
-        var convert = require('xml-js');
-        var xml = require('fs').readFileSync('/tmp/bdx.xml', 'utf8');
-        var options = {compact: true};
-        var parsedJSON = convert.xml2js(xml, options);
+    } catch(err) {
+        console.log("Failed to connect to the FTP: " + err)
+    }     
+    
+    let parsedJSON
+    // read the downloaded file, cnvert the xml to JSON
+    try {
+        parsedJSON = await readXMLasJSON('/tmp/bdx.xml')
+    } catch(err) {
+        console.log("Failed to read the XML file: " + err)
+    }     
+
+    // iterate through the parsed json to build  
+     try {
         //parsedJSON.Builders.Corporation.Builder.Subdivision.SubImage // array
         //parsedJSON.Builders.Corporation.Builder.Subdivision.Plan // array
         let plansArray = parsedJSON.Builders.Corporation.Builder.Subdivision.Plan
@@ -122,6 +104,8 @@ const exportBDXIntegration = async (req, res) => {
 }
 
 
+
+
 function unCamelCase(str){
   str = str.replace(/([a-z\xE0-\xFF])([A-Z\xC0\xDF])/g, '$1 $2');
   return str;
@@ -141,6 +125,40 @@ function slugify(string) {
     .replace(/^-+/, '') // Trim - from start of text
     .replace(/-+$/, '') // Trim - from end of text
 }
+
+async function readXMLasJSON(pathToFile){
+    var convert = require('xml-js');
+    var xml = require('fs').readFileSync(pathToFile, 'utf8');
+    var options = {compact: true};
+    return convert.xml2js(xml, options); 
+}
+
+async function connectToFTPandDownloadXML(host, user, pass){
+    
+    const ftp = require("basic-ftp")
+    const client = new ftp.Client()
+    client.ftp.verbose = false
+    try {
+        await client.access({
+            host: host,
+            user: user,
+            password: pass,
+            secure: false
+        })
+        let list = await client.list()
+        let writableStream = ""
+        let remoteFilename = list[0].name;
+         
+        await client.download(fs.createWriteStream("/tmp/bdx.xml"), remoteFilename).catch(err => {
+            console.log(err.toString());
+        })
+        client.close() // close ftp connection
+
+    } catch(err) {
+        console.log(err)
+    }   
+}
+
 
 // const zestyLogin = async (email, password) => {
 //     return new Promise((resolve, reject) => {
