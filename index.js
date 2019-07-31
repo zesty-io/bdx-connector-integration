@@ -170,6 +170,14 @@ async function connectToFTPandDownloadXML(host, user, pass){
         await client.download(fs.createWriteStream("/tmp/bdx.xml"), remoteFilename).catch(err => {
             console.log(err.toString());
         })
+
+        // write file with date to the ftp to tell them a zesty sync occured
+        let filename = 'zesty-sync.txt'
+        let filepath = '/tmp/' + filename
+        var dateSynced = new Date();
+        fs.writeFile(filepath,dateSynced.toUTCString())
+        await client.upload(fs.createReadStream(filepath), filename)
+
         client.close() // close ftp connection
 
     } catch(err) {
