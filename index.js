@@ -1,7 +1,4 @@
 
-const ftp = require("basic-ftp")
-const parseLib = require("./lib/parse")
-const bodyParser = require("body-parser")
 const request = require('request')
 const zestyAPI = require('zestyio-api-wrapper')
 
@@ -16,30 +13,40 @@ exports.bdxIntegration = (req, res) => {
   })
 }
 
-const exportBDXIntegration = async (req, res) => {
-    //console.log('running')
+async function connectToFTPandDownloadXML(host, user, pass){
+    
+    const ftp = require("basic-ftp")
     const client = new ftp.Client()
     client.ftp.verbose = false
     try {
         await client.access({
-            host: process.env.FTPHOST,
-            user: process.env.FTPUSER,
-            password: process.env.FTPPASS,
+            host: host,
+            user: user,
+            password: pass,
             secure: false
         })
         let list = await client.list()
-        
-       // res.json(list)
         let writableStream = ""
         let remoteFilename = list[0].name;
          
-        await client.download(fs.createWriteStream("/tmp/file.xml"), remoteFilename).catch(err => {
+        await client.download(fs.createWriteStream("/tmp/bdx.xml"), remoteFilename).catch(err => {
             console.log(err.toString());
         })
         client.close() // close ftp connection
+
+    } catch(err) {
+        console.log(err)
+    }   
+}
+
+const exportBDXIntegration = async (req, res) => {
+    //console.log('running')
+    try {
+        await connectToFTPandDownloadXML(process.env.FTPHOST,process.env.FTPUSER, process.env.FTPPASS)
+       
        
         var convert = require('xml-js');
-        var xml = require('fs').readFileSync('/tmp/file.xml', 'utf8');
+        var xml = require('fs').readFileSync('/tmp/bdx.xml', 'utf8');
         var options = {compact: true};
         var parsedJSON = convert.xml2js(xml, options);
         //parsedJSON.Builders.Corporation.Builder.Subdivision.SubImage // array
@@ -104,7 +111,7 @@ const exportBDXIntegration = async (req, res) => {
         } 
 
 
-        res.send(preparedPlans) //parsedJSON.Builders.Corporation.Builder.Subdivision.Plan); //parsedJSON.Builders.Corporation.Builder.Subdivision.SubImage.Plan);
+        res.send(parsedJSON.Builders.Corporation.Builder) //parsedJSON.Builders.Corporation.Builder.Subdivision.Plan); //parsedJSON.Builders.Corporation.Builder.Subdivision.SubImage.Plan);
 
         //await client.upload(fs.createReadStream("README.md"), "README.md")
     }
