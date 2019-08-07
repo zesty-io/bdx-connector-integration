@@ -1,9 +1,9 @@
 
 const request = require('request')
-const zestyAPI = require('zestyio-api-wrapper')
+const Zesty = require("zestyio-api-wrapper");
 const fs  = require('fs')
 require('env-yaml').config()
-
+let token, zestyAPI
 
 exports.bdxIntegration = (req, res) => {
   const cors = require('cors')()
@@ -12,8 +12,6 @@ exports.bdxIntegration = (req, res) => {
     exportBDXIntegration(req, res)
   })
 }
-
-
 
 const exportBDXIntegration = async (req, res) => {
     var preparedPostBodies = {
@@ -39,16 +37,42 @@ const exportBDXIntegration = async (req, res) => {
     }     
     
     // iterate through the parsed json to build the post bodies  
-     try {
-
+    try {
         preparedPostBodies.homeModelItems = await parseBDXPlans(preparedPostBodies.fullResponse)
-
-        res.send(preparedPostBodies)
-    }
-    catch(err) {
+        //res.send(preparedPostBodies)
+    } catch(err) {
         res.send(err)
     }
 
+
+    // authenticate with to zesty through the wrapper
+    try {
+        const ZestyAuth = require("zestyio-api-wrapper/auth");
+        const zestyAuth = new ZestyAuth();
+        token = await zestyAuth.login(process.env.ZESTY_USER_EMAIL, process.env.ZESTY_USER_PASSWORD);
+    } catch (e) {
+        res.send("Failed to authenticate: " + e);
+    }
+
+    // open zesty wrapper instance connection
+    try {
+         zestyAPI = new Zesty(process.env.ZESTY_INSTANCE_ZUID, token, {
+            logErrors: true,
+            logResponses: true
+        });
+    } catch (err) {
+        console.log(err);
+    }
+    
+
+  
+    // write to zesty
+    try {
+        const models = await zestyAPI.getModels();
+        res.send(models)
+    } catch (err) {
+        console.log(err);
+    }
     
     
 }

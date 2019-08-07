@@ -4,7 +4,7 @@ Makes an FTP connection to a customers BDX ftp account, pulls the XML files, and
 
 This Zesty.io integration writes a file to the ftp named `zesty-sync.txt` with a timestamp of the sync. The system will sync once a day.
 
-## Function Breakdown
+## Function Flow Breakdown
 
 * function is posted to with the instance zuid
 * function looks for secret credentials associated with instance, makes zesty authentication and get token
