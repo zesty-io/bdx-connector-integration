@@ -112,7 +112,6 @@ var homePlanModel = {
     'plan_number' : "PlanNumber._text"
     'builder' : "", // builder ZUID set programatically by zesty
     'square_footage' : "BaseSqft._text",
-   
     'base_price': "BasePrice._text",
     'bedrooms': "Bedrooms._text",
     'master_bedroom_location': "Bedrooms._attributes.MasterBedLocation",
@@ -129,35 +128,6 @@ var homePlanModel = {
     'plan_amenity': "PlanAmenity._text",
     'plan_amenity_type': "PlanAmenity._attributes.Type",
     'basement': "Basement._text",
-    'spec_county' : "SpecCounty._text",
-    'spec_latitude': "SpecLatitude._text", // not used
-    'spec_longitude': "SpecLongitude._text", // not used
-    'spec_movein_date' : "SpecMoveInDate.Day._text", 
-    'spec_is_model' : "SpecIsModel._text", // not used
-    'spec_price': "SpecPrice._attributes._text",
-    'spec_square_footage' : "SpecSqft._text",
-    'spec_number_of_stories' : "SpecStories._text",
-    'spec_square_footage' : "SpecSqft._text",
-    'spec_location' : "SpecLocation._text", // not used
-    'spec_baths' : "SpecBaths._text",
-    'spec_half_baths' : "SpecHalfBaths._text",
-    'spec_bedrooms' : "SpecBedrooms._text",
-    'spec_master_bedroom_location' : "SpecBedrooms._attributes.MasterBedLocation", // not used
-    'spec_garage' : "SpecGarage._text",
-    'spec_living_area' : "SpecLivingArea._text", // not used
-    'spec_living_area_type' : "SpecLivingArea._attributes.Type", // not used, numbers 1-5 ignored
-    'spec_marketing_headline' : "SpecMarketingHeadline._text",
-    'spec_amenity' : "SpecAmenity._text", // not used
-    'spec_amenity_type' : "SpecAmenity._attributes.Type", // not used
-    'spec_description' : "SpecDescription._cdata",
-    'spec_dining_areas' : "SpecDiningAreas._text", // not used
-    'spec_basement' : "SpecBasement._text.Type", // not used
-    'spec_floorplan_url_1':  "SpecImages.SpecFloorPlanImage[0]._text",
-    'spec_floorplan_url_2': "SpecImages.SpecFloorPlanImage[1]._text",
-    'stories': "Stories._text",
-    'floor_plan_1_url' : "PlanImages.FloorPlanImage[0]._text",
-    'floor_plan_2_url' : "PlanImages.FloorPlanImage[1]._text",
-    'builder' : "", // should be pull from relationship Builders.Corporation.Builder.BrandName
     // in zesty but not in bdx
     // living_area_1-5, living_area_type_, amenities, brochure, included_features, sort_order
 
