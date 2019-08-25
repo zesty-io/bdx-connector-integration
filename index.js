@@ -13,11 +13,210 @@ exports.bdxIntegration = (req, res) => {
   })
 }
 
+
+// Zesty.io Content Model to BDX Mapping
+// Corporation
+// Content Model Name: corporation
+// Content Model ZUID: 6-f6fcc2fe84-j7qt2d
+// https://3dlpqt3n.manage.zesty.io/#!/content/6-f6fcc2fe84-j7qt2d
+// BDX XML Map: Builders.Corporation
+
+var corporationModel = {
+    'corporate_builder_number' : '',
+    'corporation_id' : '',
+    'corporate_builder_state' : '',
+    'corporate_name' : '',
+    'corporate_reporting_email' : '',
+    'sort_order' : '', 
+}
+
+
+// Builder
+// Content Model Name: builder-model
+// Content Model ZUID: 6-f4a0ad94fc-hm6v7x
+// https://3dlpqt3n.manage.zesty.io/#!/content/6-f4a0ad94fc-hm6v7x
+// BDX XML Map: Builders.Corporation.Builder
+
+var builderModel = {
+    'builder_id': "_attributes.BuilderID",
+    'brand_name' : "BrandName._text",
+    'builder_number' : "BuilderNumber._text"
+    'plan_number' : "PlanNumber._text"
+    'builder' : "", // builder ZUID set programatically by zesty
+    'square_footage' : "BaseSqft._text",
+    'related_corporation' : "", //
+    'subdivision_price_low' : "Subdivision._attributes.PriceLow", //
+    'subdivision_price_high' : "Subdivision._attributes.PriceHigh", //
+    'subdivision_square_foot_low' : "Subdivision._attributes.SqftLow", //
+    'subdivision_square_foot_high' : "Subdivision._attributes.SqftHigh", //
+    'subdivision_id' : "Subdivision._attributes.SubdivisionID", //
+    'community_style' : 'Subdivision.CommunityStyle._text',
+    'sales_office_agent_1': 'Subdivision.SalesOffice.Agent[0]._text',
+    'sales_office_agent_2': 'Subdivision.SalesOffice.Agent[1]._text',
+    'sales_office_street_address': 'Subdivision.SalesOffice.Address.Street1._text',
+    'sales_office_city': 'Subdivision.SalesOffice.Address.City._text',
+    'sales_office_address_county' : 'Subdivision.SalesOffice.Address.City._text', 
+    'sales_office_zip_code' : 'Subdivision.SalesOffice.Address.ZIP._text',
+    'sales_office_country' : 'Subdivision.SalesOffice.Address.Country._text',
+    'sales_office_latitude' :  'Subdivision.SalesOffice.Address.Geocode.Latitude._text',
+    'sales_office_longitude' : 'Subdivision.SalesOffice.Address.Geocode.Longitude._text',
+    'sales_office_tel_area_code': 'Subdivision.SalesOffice.Phone.AreaCode._text', 
+    'sales_office_tel_prefix': 'Subdivision.SalesOffice.Phone.Prefix._text', 
+    'sales_office_tel_suffix': 'Subdivision.SalesOffice.Phone.Suffix._text, 
+    'sales_office_email': 'Subdivision.SalesOffice.Email._text', 
+    'sales_office_hours': 'Subdivision.SalesOffice.Hours._text', 
+    'subdivision_street_address': 'Subdivision.SubAddress.SubStreet1._text', 
+    'subdivision_county': 'Subdivision.SubAddress.SubCounty._text', 
+    'subdivision_city': 'Subdivision.SubAddress.SubCity._text', 
+    'subdivision_state': 'Subdivision.SubAddress.SubState._text', 
+    'subdivision_zip_code': 'Subdivision.SubAddress.SubZIP._text', 
+    'subdivision_country': 'Subdivision.SubAddress.SubCountry._text', 
+    'subdivision_latitude': 'Subdivision.SubAddress.SubGeocode.SubLatitude._text', 
+    'subdivision_longitude': 'Subdivision.SubAddress.SubGeocode.SubLongitude._text', 
+    'subdivision_amenity': 'Subdivision.SubAmenity._text', 
+    'subdivision_amenity_type': 'Subdivision.SubAmenity._attributes.Type', 
+    'subdivision_description': 'Subdivision.SubDescription._cdata', 
+    'subdivision_website': 'Subdivision.SubWebsite._text', 
+    // in the zesty content model but not in bdx
+    // beds_low, beds_high, garages, bathroom_low, bathroom_high, half_bath, local_amenities_list, sort_order
+
+}
+
+// Home Plan Model Images
+// Content Model Name: home-model-images
+// Content Model ZUID: 6-a0b599c9d6-cnvwt8 
+// https://3dlpqt3n.manage.zesty.io/#!/content/6-a0b599c9d6-cnvwt8
+// BDX XML Map: Builders.Corporation.Builder.Subdivision.Plan.PlanImages (ElevationImage|InteriorImage)
+
+var homePlanModelImages = {
+    'related_model': "", // sourced by zesty
+    'image_type' : "", // ElevationImage|InteriorImage -- populated based upon the image type being looped through
+    'image_url' : "_text",
+    'sort_order': "_attributes.SequencePosition"
+    // 'main_image' : "_text", // stored in zesty
+}
+
+// Label: Builder
+// Content Model Name: builder 
+// Content Model ZUID: 6-f4a0ad94fc-hm6v7x
+// https://3dlpqt3n.manage.zesty.io/#!/content/6-6a2e70-k254c2
+// BDX XML Map: Builders.Corporation.Builder.Subdivision.Plan.Spec
+
+var homePlanSpecModel = {
+    'spec_id': "_attributes.SpecID",
+    'spec_type' : "_attributes.Type",
+    'spec_number' : "SpecNumber._text",
+    'home_model' : "", // sorced by zesty in the script
+    'spec_street_address': "SpecStreet1._text",
+    'spec_city': "SpecCity._text",
+    'spec_state': "SpecState._text",
+    'spec_zip_code': "SpecZIP._text",
+    'spec_country': "SpecCountry._text", // not used
+    'spec_latitude': "SpecLatitude._text", // not used
+    'spec_longitude': "SpecLongitude._text", // not used
+    'spec_movein_date' : "SpecMoveInDate.Day._text", 
+    'spec_is_model' : "SpecIsModel._text", // not used
+    'spec_price': "SpecPrice._attributes._text",
+    'spec_square_footage' : "SpecSqft._text",
+    'spec_number_of_stories' : "SpecStories._text",
+    'spec_square_footage' : "SpecSqft._text",
+    'spec_location' : "SpecLocation._text", // not used
+    'spec_baths' : "SpecSqft._text",
+    'spec_half_baths' : "SpecHalfBaths._text",
+    'spec_square_footage' : "SpecBaths._text",
+    'spec_bedrooms' : "SpecBedrooms._text",
+    'spec_master_bedroom_location' : "SpecBedrooms._attributes.MasterBedLocation", // not used
+    'spec_garage' : "SpecGarage._text",
+    'spec_living_area' : "SpecLivingArea._text", // not used
+    'spec_living_area_type' : "SpecLivingArea._attributes.Type", // not used, numbers 1-5 ignored
+    'spec_marketing_headline' : "SpecMarketingHeadline._text",
+    'spec_amenity' : "SpecAmenity._text", // not used
+    'spec_amenity_type' : "SpecAmenity._cdata", // not used
+    'spec_description' : "SpecDescription._cdata",
+    'spec_dining_areas' : "SpecDiningAreas._text", // not used
+    'spec_basement' : "SpecBasement._text.Type", // not used
+    'spec_floorplan_url_1':  "SpecImages.SpecFloorPlanImage[0]._text",
+    'spec_floorplan_url_2': "SpecImages.SpecFloorPlanImage[1]._text",
+    // in zesty but not in bdx
+    // spec_floorplan_image_1, spec_floorplan_image_2, spec_previous_price, google_maps_link, amenities, brochure, included_features, sort_order
+}
+
+// Label: Home Plan Model Spec Listing
+// Content Model Name: home-model-listing
+// Content Model ZUID: 6-6a2e70-k254c2
+// https://3dlpqt3n.manage.zesty.io/#!/content/6-6a2e70-k254c2
+// BDX XML Map: Builders.Corporation.Builder.Subdivision.Plan.Spec
+
+var homePlanSpecModel = {
+    'spec_id': "_attributes.SpecID",
+    'spec_type' : "_attributes.Type",
+    'spec_number' : "SpecNumber._text",
+    'home_model' : "", // sorced by zesty in the script
+    'spec_street_address': "SpecStreet1._text",
+    'spec_city': "SpecCity._text",
+    'spec_state': "SpecState._text",
+    'spec_zip_code': "SpecZIP._text",
+    'spec_country': "SpecCountry._text", // not used
+    'spec_latitude': "SpecLatitude._text", // not used
+    'spec_longitude': "SpecLongitude._text", // not used
+    'spec_movein_date' : "SpecMoveInDate.Day._text", 
+    'spec_is_model' : "SpecIsModel._text", // not used
+    'spec_price': "SpecPrice._attributes._text",
+    'spec_square_footage' : "SpecSqft._text",
+    'spec_number_of_stories' : "SpecStories._text",
+    'spec_square_footage' : "SpecSqft._text",
+    'spec_location' : "SpecLocation._text", // not used
+    'spec_baths' : "SpecSqft._text",
+    'spec_half_baths' : "SpecHalfBaths._text",
+    'spec_square_footage' : "SpecBaths._text",
+    'spec_bedrooms' : "SpecBedrooms._text",
+    'spec_master_bedroom_location' : "SpecBedrooms._attributes.MasterBedLocation", // not used
+    'spec_garage' : "SpecGarage._text",
+    'spec_living_area' : "SpecLivingArea._text", // not used
+    'spec_living_area_type' : "SpecLivingArea._attributes.Type", // not used, numbers 1-5 ignored
+    'spec_marketing_headline' : "SpecMarketingHeadline._text",
+    'spec_amenity' : "SpecAmenity._text", // not used
+    'spec_amenity_type' : "SpecAmenity._cdata", // not used
+    'spec_description' : "SpecDescription._cdata",
+    'spec_dining_areas' : "SpecDiningAreas._text", // not used
+    'spec_basement' : "SpecBasement._text.Type", // not used
+    'spec_floorplan_url_1':  "SpecImages.SpecFloorPlanImage[0]._text",
+    'spec_floorplan_url_2': "SpecImages.SpecFloorPlanImage[1]._text",
+    // in zesty but not in bdx
+    // spec_floorplan_image_1, spec_floorplan_image_2, spec_previous_price, google_maps_link, amenities, brochure, included_features, sort_order
+}
+
+
+// Label: Home Plan Model Spec Listing Images
+// Content Model Name: spec-images-for-listing
+// Content Model ZUID: 6-92e4ebb897-l88c9s
+// https://3dlpqt3n.manage.zesty.io/#!/content/6-92e4ebb897-l88c9s
+// BDX XML map: Builders.Corporation.Builder.Subdivision.Plan.Spec.SpecImages (SpecElevationImage|SpecInteriorImage)
+
+var homePlanModelSpecImages = {
+    'related_spec': "", // sourced by zesty
+    'image_type' : "", // SpecElevationImage|SpecInteriorImage -- populated based upon the image type being looped through
+    'image_url' : "_text",
+    'sort_order': "_attributes.SequencePosition"
+    // 'main_image' : "_text", // stored in zesty
+}
+
+// Functionality
+
 const exportBDXIntegration = async (req, res) => {
     var preparedPostBodies = {
             message: 'hello',
             fullResponse: {},
-            homeModelItems: []
+            prepared: {
+                corporate: [],
+                builders: [],
+                communityImages: [],
+                homeModels: [],
+                homeModelsImages: [],
+                homeModelsListingSpecs: [],
+                homeModelsListingSpecs: []
+
+            }
         }
     
     // connect to bdx and download the xml file, ideally the user/host/pass woudl be taken from zesty setting
@@ -35,10 +234,13 @@ const exportBDXIntegration = async (req, res) => {
     } catch(err) {
         res.send("Failed to read the XML file: " + err)
     }     
+
+    res.send(preparedPostBodies.fullResponse)
+    return
     
     // iterate through the parsed json to build the post bodies  
     try {
-        preparedPostBodies.homeModelItems = await parseBDXPlans(preparedPostBodies.fullResponse)
+        preparedPostBodies.prepared = await parseBDX(preparedPostBodies.fullResponse)
         //res.send(preparedPostBodies)
     } catch(err) {
         res.send(err)
@@ -68,7 +270,7 @@ const exportBDXIntegration = async (req, res) => {
   
     // write to zesty
     try {
-        const models = await zestyAPI.getModels();
+        const models = await zestyAPI.getSettings();
         res.send(models)
     } catch (err) {
         console.log(err);
@@ -76,8 +278,6 @@ const exportBDXIntegration = async (req, res) => {
     
     
 }
-
-
 
 
 function unCamelCase(str){
@@ -100,8 +300,8 @@ function slugify(string) {
     .replace(/-+$/, '') // Trim - from end of text
 }
 
-async function parseBDXPlans(bdxObj){
-    try {
+async function extractPlans(bdxObj){
+     try {
         let preparedPlans = []
 
         for (index = 0; index < bdxObj.Builders.Corporation.Builder.Subdivision.Plan.length; index++) { 
@@ -164,7 +364,19 @@ async function parseBDXPlans(bdxObj){
         console.log(err)
     }
 
-    
+}
+
+async function parseBDX(bdxObj){
+    let prepared = {
+        corporate: [],
+        builders: await extractBuilders(bdxObj),
+        communityImages: [],
+        homeModels: await extractPlans(bdxObj),
+        homeModelsImages: [],
+        homeModelsListingSpecs: [],
+        homeModelsListingSpecs: []
+    }
+    return prepared
 }
 
 async function xmlToObject(pathToFile){
@@ -210,98 +422,48 @@ async function connectToFTPandDownloadXML(host, user, pass){
 }
 
 
-// const zestyLogin = async (email, password) => {
-//     return new Promise((resolve, reject) => {
-//         request.post({
-//             url: 'https://svc.zesty.io/auth/login',
-//             formData: {
-//                 email,
-//                 password
-//             },
-//             json: true
-//         }, (error, response, body) => {
-//             if (error) {
-//                 return reject({
-//                     errorCode: -1,
-//                     errorMessage: 'Unexpected error.'
-//                 })
-//             }
 
-//             if (response.statusCode !== 200) {
-//                 return reject({
-//                     errorCode: response.statusCode,
-//                     errorMessage: body.message || ''
-//                 })
-//             }
+async function extractBuilders(bdxObj){
+     try {
+        let preparedBuilders = []
 
-//             return resolve(body.meta.token)
-//         })
-//     })
-// }
+        for (index = 0; index < bdxObj.Builders.Corporation.Builder.length; index++) { 
+            
+            let o = bdxObj.Builders.Corporation.Builder[index]  
 
-// const zestyVerifyToken = async(token) => {
-//     return new Promise((resolve, reject) => {
-//         request.get({
-//             url: 'https://svc.zesty.io/auth/verify',
-//             headers: {
-//                 Authorization: `Bearer ${token}`
-//             },
-//             json: true
-//         }, (error, response, body) => {
-//             if (error) {
-//                 return reject({
-//                     errorCode: -1,
-//                     errorMessage: 'Unexpected error.'
-//                 })
-//             }
+            let planObject = {
+                'builder_id': o._attributes.BuilderID,
+                'brand_name' : o.BrandName._text,
+                'builder_number' : o.BuilderNumber._text,
+                'main_image' :mainImage,
+                'base_price': Math.round(o.BasePrice._text),
+                'bedrooms': o.Bedrooms._text,
+                'baths': o.Baths._text,
+                'half_baths': halfBaths,
+                'garage': o.Garage._text,
+                'stories': stories,
+                'square_footage' : o.BaseSqft._text,
+                'builder' : bdxObj.Builders.Corporation.Builder.BrandName._text,
+                'plan_type': unCamelCase(o._attributes.Type),
+                'floor_plan_1': floorPlanImage1,
+                'floor_plan_2': floorPlanImage2,
+                'description' : o.Description._cdata
 
-//             if (response.statusCode !== 200) {
-//                 return resolve(false)
-//             }
+            }
+            let apiPostBody = {
+                'content': planObject,
+                'meta': {
+                    'path_part': slugify(planObject.plan_name)
+                }
+            }
 
-//             return resolve(true)
-//         })
-//     })
-// }
+            preparedPlans.push(apiPostBody)
+        } 
 
-// const goZesty = async () => {
-//     // Get user email address and password...
-//     const email = process.env.ZESTY_USER_EMAIL_ADDRESS
-//     const password = process.env.ZESTY_USER_PASSWORD
+        return preparedPlans
+        
+    } catch(err){
+        console.log(err)
+    }
 
-//     // Get the instance ZUID to work with
-//     const instanceZUID = process.env.ZESTY_INSTANCE_ZUID
-
-//     try {
-//         // Attempt to login and retrieve access token
-//         let zestyToken = await zestyLogin(email, password)
-
-//         // Try verifying token, expect true
-//         let isValidToken = await zestyVerifyToken(zestyToken)
-//         console.log(`Token is ${isValidToken ? '' : 'not '}valid.`)
-
-//         // Instantiate API and test it
-//         // const zesty = new zestyAPI(instanceZUID, zestyToken)
-//         // const views = await zesty.getViews()
-
-//         //console.log(views)
-//     } catch (ex) {
-//         console.error('Error accessing zesty.io:')
-//         console.error(ex)
-//     }
-// }
-
-//goZesty()
-
-// zesty({
-//         instance: process.env.ZESTY_INSTANCE_ZUID,
-//         token: process.env.,
-//         email: process.env.ZESTY_USER_EMAIL,
-//         password: process.env.ZESTY_USER_PASSWORD,
-//         options: {
-//             authURL: process.env.ZESTY_AUTH_API,
-//             instancesAPIURL: process.env.ZESTY_INSTANCE_API,
-//             accountsAPIURL: process.env.ZESTY_ACCOUNTS_API
-//         }
-//     })
-
+}
