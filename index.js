@@ -15,6 +15,8 @@ exports.bdxIntegration = (req, res) => {
 
 
 // Zesty.io Content Model to BDX Mapping
+
+
 // Corporation
 // Content Model Name: corporation
 // Content Model ZUID: 6-f6fcc2fe84-j7qt2d
@@ -22,14 +24,13 @@ exports.bdxIntegration = (req, res) => {
 // BDX XML Map: Builders.Corporation
 
 var corporationModel = {
-    'corporate_builder_number' : '',
-    'corporation_id' : '',
-    'corporate_builder_state' : '',
-    'corporate_name' : '',
-    'corporate_reporting_email' : '',
-    'sort_order' : '', 
+    'corporate_builder_number' : 'CorporateBuilderNumber._text',
+    'corporation_id' : '_attributes.CorporationID',
+    'corporate_builder_state' : 'CorporateState._text',
+    'corporate_name' : 'CorporateName._text',
+    'corporate_reporting_email' : 'CorporateReportingEmail._text',
+    // in zesty but not in BDX: sort_order
 }
-
 
 // Builder
 // Content Model Name: builder-model
@@ -82,6 +83,86 @@ var builderModel = {
 
 }
 
+// Community Images
+// Content Model Name: communitu-images
+// Content Model ZUID: 6-f4a0ad94fc-hm6v7x
+// https://3dlpqt3n.manage.zesty.io/#!/content/6-8ef3aabab8-wzxp40
+// BDX XML Path: Builders.Corporation.Builder.Subdivision.SubImage (array)
+var communityImages = {
+'related_builder' : '', // done by thos script after build is created
+'image_type' : '_attributes.Type',
+'title' : '_attributes.Title',
+'image_url' : '_text',
+'sort_order' : '_attributes.SequencePosition',
+
+// on in zesty: image
+}
+
+
+// Home Plan Model
+// Content Model Name: home-model
+// Content Model ZUID: 6-faff74-pnqf1f 
+// https://3dlpqt3n.manage.zesty.io/#!/content/6-6a2e70-k254c2
+// BDX XML Map: Builders.Corporation.Builder.Subdivision.Plan
+
+var homePlanModel = {
+    'plan_id': "_attributes.PlanID",
+    'plan_name' : "PlanName._text",
+    'plan_type' : "_attributes.Type"
+    'plan_number' : "PlanNumber._text"
+    'builder' : "", // builder ZUID set programatically by zesty
+    'square_footage' : "BaseSqft._text",
+   
+    'base_price': "BasePrice._text",
+    'bedrooms': "Bedrooms._text",
+    'master_bedroom_location': "Bedrooms._attributes.MasterBedLocation",
+    'baths': "Baths._text",
+    'marketing_headline' : "MarketingHeadline._text",
+    'plan_type': "_attributes.Type",
+    'description' : "Description._cdata"    
+    'main_image' : "PlanImages.ElevationImage",
+    'half_baths': "HalfBaths._text",
+    'living_area': "LivingArea._text",
+    'living_area_type': "LivingArea._attributes.Type",
+    'garage': "Garage._text",
+    'dining_areas': "DiningAreas._text",
+    'plan_amenity': "PlanAmenity._text",
+    'plan_amenity_type': "PlanAmenity._attributes.Type",
+    'basement': "Basement._text",
+    'spec_county' : "SpecCounty._text",
+    'spec_latitude': "SpecLatitude._text", // not used
+    'spec_longitude': "SpecLongitude._text", // not used
+    'spec_movein_date' : "SpecMoveInDate.Day._text", 
+    'spec_is_model' : "SpecIsModel._text", // not used
+    'spec_price': "SpecPrice._attributes._text",
+    'spec_square_footage' : "SpecSqft._text",
+    'spec_number_of_stories' : "SpecStories._text",
+    'spec_square_footage' : "SpecSqft._text",
+    'spec_location' : "SpecLocation._text", // not used
+    'spec_baths' : "SpecBaths._text",
+    'spec_half_baths' : "SpecHalfBaths._text",
+    'spec_bedrooms' : "SpecBedrooms._text",
+    'spec_master_bedroom_location' : "SpecBedrooms._attributes.MasterBedLocation", // not used
+    'spec_garage' : "SpecGarage._text",
+    'spec_living_area' : "SpecLivingArea._text", // not used
+    'spec_living_area_type' : "SpecLivingArea._attributes.Type", // not used, numbers 1-5 ignored
+    'spec_marketing_headline' : "SpecMarketingHeadline._text",
+    'spec_amenity' : "SpecAmenity._text", // not used
+    'spec_amenity_type' : "SpecAmenity._attributes.Type", // not used
+    'spec_description' : "SpecDescription._cdata",
+    'spec_dining_areas' : "SpecDiningAreas._text", // not used
+    'spec_basement' : "SpecBasement._text.Type", // not used
+    'spec_floorplan_url_1':  "SpecImages.SpecFloorPlanImage[0]._text",
+    'spec_floorplan_url_2': "SpecImages.SpecFloorPlanImage[1]._text",
+    'stories': "Stories._text",
+    'floor_plan_1_url' : "PlanImages.FloorPlanImage[0]._text",
+    'floor_plan_2_url' : "PlanImages.FloorPlanImage[1]._text",
+    'builder' : "", // should be pull from relationship Builders.Corporation.Builder.BrandName
+    // in zesty but not in bdx
+    // living_area_1-5, living_area_type_, amenities, brochure, included_features, sort_order
+
+}
+
 // Home Plan Model Images
 // Content Model Name: home-model-images
 // Content Model ZUID: 6-a0b599c9d6-cnvwt8 
@@ -93,52 +174,7 @@ var homePlanModelImages = {
     'image_type' : "", // ElevationImage|InteriorImage -- populated based upon the image type being looped through
     'image_url' : "_text",
     'sort_order': "_attributes.SequencePosition"
-    // 'main_image' : "_text", // stored in zesty
-}
-
-// Label: Builder
-// Content Model Name: builder 
-// Content Model ZUID: 6-f4a0ad94fc-hm6v7x
-// https://3dlpqt3n.manage.zesty.io/#!/content/6-6a2e70-k254c2
-// BDX XML Map: Builders.Corporation.Builder.Subdivision.Plan.Spec
-
-var homePlanSpecModel = {
-    'spec_id': "_attributes.SpecID",
-    'spec_type' : "_attributes.Type",
-    'spec_number' : "SpecNumber._text",
-    'home_model' : "", // sorced by zesty in the script
-    'spec_street_address': "SpecStreet1._text",
-    'spec_city': "SpecCity._text",
-    'spec_state': "SpecState._text",
-    'spec_zip_code': "SpecZIP._text",
-    'spec_country': "SpecCountry._text", // not used
-    'spec_latitude': "SpecLatitude._text", // not used
-    'spec_longitude': "SpecLongitude._text", // not used
-    'spec_movein_date' : "SpecMoveInDate.Day._text", 
-    'spec_is_model' : "SpecIsModel._text", // not used
-    'spec_price': "SpecPrice._attributes._text",
-    'spec_square_footage' : "SpecSqft._text",
-    'spec_number_of_stories' : "SpecStories._text",
-    'spec_square_footage' : "SpecSqft._text",
-    'spec_location' : "SpecLocation._text", // not used
-    'spec_baths' : "SpecSqft._text",
-    'spec_half_baths' : "SpecHalfBaths._text",
-    'spec_square_footage' : "SpecBaths._text",
-    'spec_bedrooms' : "SpecBedrooms._text",
-    'spec_master_bedroom_location' : "SpecBedrooms._attributes.MasterBedLocation", // not used
-    'spec_garage' : "SpecGarage._text",
-    'spec_living_area' : "SpecLivingArea._text", // not used
-    'spec_living_area_type' : "SpecLivingArea._attributes.Type", // not used, numbers 1-5 ignored
-    'spec_marketing_headline' : "SpecMarketingHeadline._text",
-    'spec_amenity' : "SpecAmenity._text", // not used
-    'spec_amenity_type' : "SpecAmenity._cdata", // not used
-    'spec_description' : "SpecDescription._cdata",
-    'spec_dining_areas' : "SpecDiningAreas._text", // not used
-    'spec_basement' : "SpecBasement._text.Type", // not used
-    'spec_floorplan_url_1':  "SpecImages.SpecFloorPlanImage[0]._text",
-    'spec_floorplan_url_2': "SpecImages.SpecFloorPlanImage[1]._text",
-    // in zesty but not in bdx
-    // spec_floorplan_image_1, spec_floorplan_image_2, spec_previous_price, google_maps_link, amenities, brochure, included_features, sort_order
+    // 'plan_image' : "_text", // stored in zesty
 }
 
 // Label: Home Plan Model Spec Listing
@@ -198,7 +234,7 @@ var homePlanModelSpecImages = {
     'image_type' : "", // SpecElevationImage|SpecInteriorImage -- populated based upon the image type being looped through
     'image_url' : "_text",
     'sort_order': "_attributes.SequencePosition"
-    // 'main_image' : "_text", // stored in zesty
+    // 'spec_image' : "_text", // stored in zesty
 }
 
 // Functionality

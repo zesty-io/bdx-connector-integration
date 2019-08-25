@@ -93,7 +93,7 @@ functions logs read --limit=50
 ```
 
 
-## Deployment
+## NPM Deployment Commands
 
 Note: for local developer you need to paste in values, remove before commits.
 
