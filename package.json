@@ -4,17 +4,23 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "nyc ava lib/",
-    "start": "node index.js"
+    "test": "node test.js",
+    "deploy:local": "functions deploy bdxIntegration --env-vars-file .env.yml --trigger-http --timeout=240s",
+    "deploy:dev": "gcloud functions deploy bdxIntegration --env-vars-file .env.yml --trigger-http --timeout=240s --project=zesty-dev --runtime=nodejs8 --memory=256mb",
+    "deploy:stage": "gcloud functions deploy bdxIntegration --env-vars-file .env.yml --trigger-http --timeout=240s --project=zesty-stage --runtime=nodejs8 --memory=256mb",
+    "deploy:prod": "gcloud functions deploy bdxIntegration --env-vars-file .env.yml --trigger-http --timeout=240s --project=zesty-prod --runtime=nodejs8 --memory=256mb"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@zesty-io/sdk-express-middleware": "0.0.5",
-    "dotenv": "^7.0.0",
-    "express": "^4.16.4",
-    "ftp": "^0.3.10",
-    "xml2js": "^0.4.19"
+    "basic-ftp": "^3.8.0",
+    "cors": "^2.8.5",
+    "env-yaml": "^0.1.2",
+    "fs": "0.0.1-security",
+    "request": "^2.88.0",
+    "xml-js": "^1.6.11",
+    "zestyio-api-wrapper": "^0.2.1"
   },
   "devDependencies": {
     "ava": "^1.4.1",

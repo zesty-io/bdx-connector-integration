@@ -2,3 +2,5 @@
 node_modules
 .nyc_output
 *.zip
+.env.yml
+.env.yaml
