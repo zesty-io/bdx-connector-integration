@@ -15,6 +15,8 @@ const planImageModel = require('./lib/models/plan-image.js')
 const specModel = require('./lib/models/spec.js')
 const specImageModel = require('./lib/models/spec-image.js')
 
+// utils
+const dataFunctions = require('./lib/dataFunctions.js')
 
 // Cloud Function
 
@@ -30,6 +32,18 @@ exports.bdxIntegration = (req, res) => {
 
 const exportBDXIntegration = async (req, res) => {
 
+    let to =  {
+        '_attributes' : {
+            'SequencePosition' : 1
+        },
+        '_text' : 'helloworld'
+    }
+    
+    try {
+        res.json(await dataFunctions.returnHydratedModel(planImageModel,to))
+    } catch(err) {
+        res.send("Failed to connect to the FTP: " + err)
+    }  
     var preparedPostBodies = {
             message: 'hello',
             fullResponse: {},

@@ -16,7 +16,7 @@ Google Cloud Function, Digital Transformation, Legacy Lift and Shift, ERP to Clo
 
 ## Project Organization
 
-`/models/` contains files that describe the content model in zesty, which values map the location of the BDX data in the XML. A function exists to iterate though this special object to verify data existing in the xml files.
+`/models/` contains files that describe the content model in zesty, which values map the location of the BDX data in the XML. A function exists to iterate though this special object to verify data existing in the xml files. Model must only associate themselves with 
 
 `/lib/` has functions to iterate through the special object, make ftp connection etc.
 
@@ -32,7 +32,7 @@ The BDX file is a large XML file that contains a lot of data in a child parent f
 * Builders (one of many children)
     * Corporations... (owning organiztion)
         * Builder... (represents the contractor), contains info on the builder contact info etc.
-            * Subdivision... (a project developement) container info liek area, name etc.
+            * Subdivision... (a project developement) container info like area, name etc.
                 * Plan... (an architectual plan with information on the home, images, and other data)
                     * Plan Images... (images associated with the Plan)
                     * Spec... (home listings) info on price, movein, and unit info associated with the plan etc.
