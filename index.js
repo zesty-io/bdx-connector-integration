@@ -15,8 +15,13 @@ const planImageModel = require('./lib/models/plan-image.js')
 const specModel = require('./lib/models/spec.js')
 const specImageModel = require('./lib/models/spec-image.js')
 
-// utils
-const dataFunctions = require('./lib/dataFunctions.js')
+// memory store
+
+// functions and utils
+const dataFunctions             = require('./lib/dataFunctions.js')
+const ftpFunctions              = require('./lib/ftpFunctions.js')
+const xmlFunctions              = require('./lib/xmlFunctions.js')
+const zestyHelperFunctions      = require('./lib/zestyHelperFunctions.js')
 
 // Cloud Function
 
@@ -31,19 +36,7 @@ exports.bdxIntegration = (req, res) => {
 // Main Function
 
 const exportBDXIntegration = async (req, res) => {
-
-    let to =  {
-        '_attributes' : {
-            'SequencePosition' : 1
-        },
-        '_text' : 'helloworld'
-    }
     
-    try {
-        res.json(await dataFunctions.returnHydratedModel(planImageModel,to))
-    } catch(err) {
-        res.send("Failed to connect to the FTP: " + err)
-    }  
     var preparedPostBodies = {
             message: 'hello',
             fullResponse: {},
@@ -61,31 +54,28 @@ const exportBDXIntegration = async (req, res) => {
     
     // connect to bdx and download the xml file, ideally the user/host/pass woudl be taken from zesty setting
     try {
-        await connectToFTPandDownloadXML(process.env.FTPHOST,process.env.FTPUSER, process.env.FTPPASS)
+        await ftpFunctions.connectToFTPandDownloadXML(
+            process.env.FTPHOST,
+            process.env.FTPUSER, 
+            process.env.FTPPASS
+            )
     } catch(err) {
         res.send("Failed to connect to the FTP: " + err)
     }     
     // read the downloaded file, convert the xml to JSON
     try {
-        //parsedJSON.Builders.Corporation.Builder.Subdivision.SubImage // array
-        //parsedJSON.Builders.Corporation.Builder.Subdivision.Plan // array
-        preparedPostBodies.fullResponse = await xmlToObject('/tmp/bdx.xml')
-        
+        preparedPostBodies.fullResponse = await xmlFunctions.xmlToObject('/tmp/bdx.xml')
     } catch(err) {
         res.send("Failed to read the XML file: " + err)
     }     
-
-    res.send(preparedPostBodies.fullResponse)
-    return
     
     // iterate through the parsed json to build the post bodies  
     try {
         preparedPostBodies.prepared = await parseBDX(preparedPostBodies.fullResponse)
-        //res.send(preparedPostBodies)
     } catch(err) {
         res.send(err)
     }
-
+    return 
 
     // authenticate with to zesty through the wrapper
     try {
@@ -105,8 +95,6 @@ const exportBDXIntegration = async (req, res) => {
     } catch (err) {
         console.log(err);
     }
-    
-
   
     // write to zesty
     try {
@@ -116,86 +104,40 @@ const exportBDXIntegration = async (req, res) => {
         console.log(err);
     }
     
+}
+
+
+async function extractCorporate(corporateObj){
     
+    try {
+        return await dataFunctions.returnHydratedModel(corporationModel,corporateObj)
+    } catch(err) {
+        res.send("Failed read corporation object: " + err)
+    }  
 }
 
-
-function unCamelCase(str){
-  str = str.replace(/([a-z\xE0-\xFF])([A-Z\xC0\xDF])/g, '$1 $2');
-  return str;
-}
-
-function slugify(string) {
-  const a = 'àáäâãåăæąçćčđďèéěėëêęğǵḧìíïîįłḿǹńňñòóöôœøṕŕřßşśšșťțùúüûǘůűūųẃẍÿýźžż·/_,:;'
-  const b = 'aaaaaaaaacccddeeeeeeegghiiiiilmnnnnooooooprrsssssttuuuuuuuuuwxyyzzz------'
-  const p = new RegExp(a.split('').join('|'), 'g')
-
-  return string.toString().toLowerCase()
-    .replace(/\s+/g, '-') // Replace spaces with -
-    .replace(p, c => b.charAt(a.indexOf(c))) // Replace special characters
-    .replace(/&/g, '-and-') // Replace & with 'and'
-    .replace(/[^\w\-]+/g, '') // Remove all non-word characters
-    .replace(/\-\-+/g, '-') // Replace multiple - with single -
-    .replace(/^-+/, '') // Trim - from start of text
-    .replace(/-+$/, '') // Trim - from end of text
-}
-
-async function extractPlans(bdxObj){
+async function extractPlans(plans){
      try {
         let preparedPlans = []
 
-        for (index = 0; index < bdxObj.Builders.Corporation.Builder.Subdivision.Plan.length; index++) { 
+        for (index = 0; index < plans.length; index++) { 
             
-            let o = bdxObj.Builders.Corporation.Builder.Subdivision.Plan[index]
-            //console.log(o.PlanName._text); 
-            let mainImage, floorPlanImage1, floorPlanImage2 = ""
-
-            if (o.hasOwnProperty('PlanImages')){
-                mainImage = o.PlanImages.hasOwnProperty('ElevationImage') ? o.PlanImages.ElevationImage._text : ""
-                if(Array.isArray(o.PlanImages.ElevationImage)){
-                    mainImage = o.PlanImages.ElevationImage[0]._text
-                }
-                if(Array.isArray(o.PlanImages.FloorPlanImage)){
-                    floorPlanImage1 = o.PlanImages.FloorPlanImage[0]._text
-                    floorPlanImage2 = o.PlanImages.FloorPlanImage[1]._text
-                }
-            }
-
-            let halfBaths = o.hasOwnProperty('HalfBaths') ? o.HalfBaths._text : 0;
-            let stories = o.hasOwnProperty('Stories') ? o.Stories._text : 1;
-            if(o.hasOwnProperty('Spec')){
-                halfBaths = o.Spec.hasOwnProperty('SpecHalfBaths') ? o.Spec.SpecHalfBaths._text : halfBaths;
-                stories = o.Spec.hasOwnProperty('SpecStories') ?  o.Spec.SpecStories._text : stories;
-            }
+            let o = plans[index]
+            o.zestyMemoryBuilderZUID =  memoryZuids.builder
             
+            preparedPlans.push( await dataFunctions.returnHydratedModel(corporationModel,corporateObj) )
 
-            let planObject = {
-                'plan_id': o._attributes.PlanID,
-                'plan_name' : o.PlanName._text,
-                'marketing_headline' : o.MarketingHeadline._text,
-                'main_image' :mainImage,
-                'base_price': Math.round(o.BasePrice._text),
-                'bedrooms': o.Bedrooms._text,
-                'baths': o.Baths._text,
-                'half_baths': halfBaths,
-                'garage': o.Garage._text,
-                'stories': stories,
-                'square_footage' : o.BaseSqft._text,
-                'builder' : bdxObj.Builders.Corporation.Builder.BrandName._text,
-                'plan_type': unCamelCase(o._attributes.Type),
-                'floor_plan_1': floorPlanImage1,
-                'floor_plan_2': floorPlanImage2,
-                'description' : o.Description._cdata
 
-            }
+            // 'builder' : bdxObj.Builders.Corporation.Builder.BrandName._text
+
+
             let apiPostBody = {
                 'content': planObject,
                 'meta': {
-                    'path_part': slugify(planObject.plan_name)
+                    'path_part': zestyHelperFunctions.slugify(planObject.plan_name)
                 }
             }
 
-            preparedPlans.push(apiPostBody)
         } 
 
         return preparedPlans
@@ -207,100 +149,36 @@ async function extractPlans(bdxObj){
 }
 
 async function parseBDX(bdxObj){
+    
+    //return await extractBuilder(bdxObj.Builders.Corporation.Builder);
     let prepared = {
-        corporate: [],
-        builders: await extractBuilders(bdxObj),
+        corporate: await extractCorporate(bdxObj.Builders.Corporation),
+        builders: await extractBuilder(bdxObj.Builders.Corporation.Builder),
         communityImages: [],
-        homeModels: await extractPlans(bdxObj),
-        homeModelsImages: [],
+        homeModels: await extractPlans(bdxObj.Builders.Corporation.Builder.Subdivision.Plan),
+        homeModelsImages: await extractPlanImages(bdxObj.Builders.Corporation.Builder.Subdivision.Plan.PlanImages),
         homeModelsListingSpecs: [],
-        homeModelsListingSpecs: []
     }
     return prepared
 }
 
-async function xmlToObject(pathToFile){
-    var convert = require('xml-js');
-    var xml = fs.readFileSync(pathToFile, 'utf8');
-    var options = {compact: true};
-    return convert.xml2js(xml, options); 
-}
-
-async function connectToFTPandDownloadXML(host, user, pass){
+async function extractBuilder(builders){
     
-    const ftp = require("basic-ftp")
-    
-    const client = new ftp.Client()
-    client.ftp.verbose = false
-    try {
-        await client.access({
-            host: host,
-            user: user,
-            password: pass,
-            secure: false
-        })
-        let list = await client.list()
-        let writableStream = ""
-        let remoteFilename = list[0].name;
-         
-        await client.download(fs.createWriteStream("/tmp/bdx.xml"), remoteFilename).catch(err => {
-            console.log(err.toString());
-        })
-
-        // write file with date to the ftp to tell them a zesty sync occured
-        let filename = 'zesty-sync.txt'
-        let filepath = '/tmp/' + filename
-        var dateSynced = new Date();
-        fs.writeFile(filepath,dateSynced.toUTCString())
-        await client.upload(fs.createReadStream(filepath), filename)
-
-        client.close() // close ftp connection
-
-    } catch(err) {
-        console.log(err)
-    }   
-}
-
-
-
-async function extractBuilders(bdxObj){
+    builders = Array.isArray(builders) ? builders : [builders]
+        
      try {
         let preparedBuilders = []
 
-        for (index = 0; index < bdxObj.Builders.Corporation.Builder.length; index++) { 
+        for (index = 0; index < builders.length; index++) { 
             
-            let o = bdxObj.Builders.Corporation.Builder[index]  
-
-            let planObject = {
-                'builder_id': o._attributes.BuilderID,
-                'brand_name' : o.BrandName._text,
-                'builder_number' : o.BuilderNumber._text,
-                'main_image' :mainImage,
-                'base_price': Math.round(o.BasePrice._text),
-                'bedrooms': o.Bedrooms._text,
-                'baths': o.Baths._text,
-                'half_baths': halfBaths,
-                'garage': o.Garage._text,
-                'stories': stories,
-                'square_footage' : o.BaseSqft._text,
-                'builder' : bdxObj.Builders.Corporation.Builder.BrandName._text,
-                'plan_type': unCamelCase(o._attributes.Type),
-                'floor_plan_1': floorPlanImage1,
-                'floor_plan_2': floorPlanImage2,
-                'description' : o.Description._cdata
-
-            }
-            let apiPostBody = {
-                'content': planObject,
-                'meta': {
-                    'path_part': slugify(planObject.plan_name)
-                }
-            }
-
-            preparedPlans.push(apiPostBody)
+           let b = builders[index]
+            
+            preparedBuilders.push( 
+                await dataFunctions.returnHydratedModel(builderModel,b) 
+            )
         } 
 
-        return preparedPlans
+        return preparedBuilders
         
     } catch(err){
         console.log(err)
