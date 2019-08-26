@@ -1,4 +1,4 @@
-# BDX Integration
+# BDX Integration to Zesty.io API CMS
 
 Makes an FTP connection to a customers BDX ftp account, pulls the XML files, and imports them into a specific content model.
 
