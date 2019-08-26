@@ -44,12 +44,25 @@ The BDX file is a large XML file that contains a lot of data in a child parent f
 * BDX XML file id downloaded to a temporary folder
 * BDX file is read and converted into a Javascript Object
 * bdx javascript object is parsed to prepare into post bodies and write to the zesty api, this is the order
-    * Builders are 
+    * Builders
+        * Corporations
+            * Community Images
+            * Plans
+                * Plan Images
+                * Specs
+                    * Spec Images
 * post bodies are iterated through to create content
     * Item is check if it is unique by looking it up by URL, if exists skip
     * Item is entered into the system
     * Item is published
 * Process completes, sync file is written to the ftp
+
+## Process
+
+* This endpoint needs to be periodically hit on a daily basis to get new information
+* data needs to be verified to prevent dual entry
+* an notification needs to be written to tell a user when the last sync was
+
 
 
 **Endpoints**
