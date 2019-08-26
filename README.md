@@ -4,6 +4,19 @@ Makes an FTP connection to a customers BDX ftp account, pulls the XML files, and
 
 This Zesty.io integration writes a file to the ftp named `zesty-sync.txt` with a timestamp of the sync. The system will sync once a day.
 
+## Key Word Topics
+
+Google Cloud Dunction, Digital Transtion , Legacy Lift and Shift, ERP to Cloud, Google Task
+
+## Project Organization
+
+`/models/` contains files that describe the content model in zesty, which values map the location of the BDX data in the XML. A function exists to iterate though this special object to verify data existing in the xml files.
+
+`/lib/` has functions to iterate through the special object, make ftp connection etc.
+
+`index.js` the core of the cloud function
+
+
 ## The BDX XML file
 
 The BDX file is a large XML file that contains a lot of data in a child parent format.
