@@ -6,7 +6,7 @@ This Zesty.io integration writes a file to the ftp named `zesty-sync.txt` with a
 
 ## Key Word Topics
 
-Google Cloud Dunction, Digital Transtion , Legacy Lift and Shift, ERP to Cloud, Google Task
+Google Cloud Dunction, Digital Transtion , Legacy Lift and Shift, ERP to Cloud, Google Task, FTP, XML
 
 ## Project Organization
 
