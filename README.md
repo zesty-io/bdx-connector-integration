@@ -4,9 +4,15 @@ Makes an FTP connection to a customers BDX ftp account, pulls the XML files, and
 
 This Zesty.io integration writes a file to the ftp named `zesty-sync.txt` with a timestamp of the sync. The system will sync once a day.
 
+### Process
+
+* This endpoint needs to be periodically hit on a daily basis to get new information
+* data needs to be verified to prevent dual entry
+* an notification needs to be written to tell a user when the last sync was
+
 ## Key Word Topics
 
-Google Cloud Dunction, Digital Transtion , Legacy Lift and Shift, ERP to Cloud, Google Task, FTP, XML
+Google Cloud Function, Digital Transformation, Legacy Lift and Shift, ERP to Cloud, Google Task, FTP, XML
 
 ## Project Organization
 
@@ -56,12 +62,6 @@ The BDX file is a large XML file that contains a lot of data in a child parent f
     * Item is entered into the system
     * Item is published
 * Process completes, sync file is written to the ftp
-
-## Process
-
-* This endpoint needs to be periodically hit on a daily basis to get new information
-* data needs to be verified to prevent dual entry
-* an notification needs to be written to tell a user when the last sync was
 
 
 
