@@ -16,6 +16,12 @@ const specModel = require('./lib/models/spec.js')
 const specImageModel = require('./lib/models/spec-image.js')
 
 // memory store
+let memoryZuids = {
+    builder: '',
+    corporation: '',
+    plan: '',
+    spec: ''
+}
 
 // functions and utils
 const dataFunctions             = require('./lib/dataFunctions.js')
@@ -27,7 +33,6 @@ const zestyHelperFunctions      = require('./lib/zestyHelperFunctions.js')
 
 exports.bdxIntegration = (req, res) => {
   const cors = require('cors')()
-    console.log('running')
   cors(req, res, () => {
     exportBDXIntegration(req, res)
   })
@@ -54,20 +59,18 @@ const exportBDXIntegration = async (req, res) => {
     
     // connect to bdx and download the xml file, ideally the user/host/pass woudl be taken from zesty setting
     try {
-        await ftpFunctions.connectToFTPandDownloadXML(
-            process.env.FTPHOST,
-            process.env.FTPUSER, 
-            process.env.FTPPASS
-            )
+        await ftpFunctions.connectToFTPandDownloadXML(process.env.FTPHOST,process.env.FTPUSER, process.env.FTPPASS)
     } catch(err) {
         res.send("Failed to connect to the FTP: " + err)
-    }     
+    } 
+
     // read the downloaded file, convert the xml to JSON
     try {
-        preparedPostBodies.fullResponse = await xmlFunctions.xmlToObject('/tmp/bdx.xml')
+        preparedPostBodies.fullResponse = await xmlFunctions.xmlToObject( process.env.BDXTEMPPATH)
     } catch(err) {
         res.send("Failed to read the XML file: " + err)
     }     
+     //res.send(preparedPostBodies.fullResponse )
     
     // iterate through the parsed json to build the post bodies  
     try {
@@ -75,6 +78,7 @@ const exportBDXIntegration = async (req, res) => {
     } catch(err) {
         res.send(err)
     }
+    res.send(preparedPostBodies.prepared )
     return 
 
     // authenticate with to zesty through the wrapper
@@ -98,14 +102,29 @@ const exportBDXIntegration = async (req, res) => {
   
     // write to zesty
     try {
-        const models = await zestyAPI.getSettings();
-        res.send(models)
+        const settings = await zestyAPI.getSettings();
+        res.send(settings)
     } catch (err) {
         console.log(err);
     }
     
 }
 
+
+async function parseBDX(bdxObj){
+    
+    //return await extractBuilder(bdxObj.Builders.Corporation.Builder);
+    let prepared = {
+        corporate: await extractCorporate(bdxObj.Builders.Corporation),
+        builders: await extractBuilder(bdxObj.Builders.Corporation.Builder),
+        communityImages: await extractCommunityImages(bdxObj.Builders.Corporation.Builder.Subdivision.SubImage),
+        plans: await extractPlans(bdxObj.Builders.Corporation.Builder.Subdivision.Plan),
+        planImages: await extractPlanImages(bdxObj.Builders.Corporation.Builder.Subdivision.Plan.PlanImages),
+        specs: [],
+        specImages: [],
+    }
+    return prepared
+}
 
 async function extractCorporate(corporateObj){
     
@@ -122,21 +141,18 @@ async function extractPlans(plans){
 
         for (index = 0; index < plans.length; index++) { 
             
-            let o = plans[index]
-            o.zestyMemoryBuilderZUID =  memoryZuids.builder
+            let planObj = plans[index]
+            planObj.zestyMemoryBuilderZUID =  memoryZuids.builder
             
-            preparedPlans.push( await dataFunctions.returnHydratedModel(corporationModel,corporateObj) )
-
-
+            preparedPlans.push( await dataFunctions.returnHydratedModel(planModel,planObj) )
             // 'builder' : bdxObj.Builders.Corporation.Builder.BrandName._text
 
-
-            let apiPostBody = {
-                'content': planObject,
-                'meta': {
-                    'path_part': zestyHelperFunctions.slugify(planObject.plan_name)
-                }
-            }
+            // let apiPostBody = {
+            //     'content': planObject,
+            //     'meta': {
+            //         'path_part': zestyHelperFunctions.slugify(planObject.plan_name)
+            //     }
+            // }
 
         } 
 
@@ -148,19 +164,7 @@ async function extractPlans(plans){
 
 }
 
-async function parseBDX(bdxObj){
-    
-    //return await extractBuilder(bdxObj.Builders.Corporation.Builder);
-    let prepared = {
-        corporate: await extractCorporate(bdxObj.Builders.Corporation),
-        builders: await extractBuilder(bdxObj.Builders.Corporation.Builder),
-        communityImages: [],
-        homeModels: await extractPlans(bdxObj.Builders.Corporation.Builder.Subdivision.Plan),
-        homeModelsImages: await extractPlanImages(bdxObj.Builders.Corporation.Builder.Subdivision.Plan.PlanImages),
-        homeModelsListingSpecs: [],
-    }
-    return prepared
-}
+
 
 async function extractBuilder(builders){
     
@@ -173,12 +177,60 @@ async function extractBuilder(builders){
             
            let b = builders[index]
             
-            preparedBuilders.push( 
-                await dataFunctions.returnHydratedModel(builderModel,b) 
-            )
+            preparedBuilders.push( await dataFunctions.returnHydratedModel(builderModel,b) )
         } 
 
         return preparedBuilders
+        
+    } catch(err){
+        console.log(err)
+    }
+
+}
+
+async function extractCommunityImages(images){
+    
+    images = Array.isArray(images) ? images : [images]
+        
+     try {
+        let preparedImages = []
+
+        for (index = 0; index < images.length; index++) { 
+            
+           let img = images[index]
+           img.related_builder = memoryZuids.builder
+            
+            preparedImages.push( 
+                await dataFunctions.returnHydratedModel(communityImageModel,img) 
+            )
+        } 
+    
+        return preparedImages
+        
+    } catch(err){
+        console.log(err)
+    }
+
+}
+
+
+async function extractPlanImages(images){
+    
+    images = Array.isArray(images) ? images : [images]
+        
+     try {
+        let preparedImages = []
+
+        for (index = 0; index < images.length; index++) { 
+            
+           let img = images[index]
+            
+            preparedImages.push( 
+                await dataFunctions.returnHydratedModel(planImageModel,img) 
+            )
+        } 
+
+        return preparedImages
         
     } catch(err){
         console.log(err)
