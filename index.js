@@ -140,13 +140,12 @@ async function extractPlans(plans){
         let preparedPlans = []
 
         for (index = 0; index < plans.length; index++) { 
-            
-            let planObj = plans[index]
-            planObj.zestyMemoryBuilderZUID =  memoryZuids.builder
-            
-            preparedPlans.push( await dataFunctions.returnHydratedModel(planModel,planObj) )
-            // 'builder' : bdxObj.Builders.Corporation.Builder.BrandName._text
+            let p = plans[index]
+            p.zestyMemoryBuilderZUID =  memoryZuids.builder
+            let plan = dataFunctions.returnHydratedModel(planModel,p)
 
+            preparedPlans.push(plan)
+            
             // let apiPostBody = {
             //     'content': planObject,
             //     'meta': {
@@ -155,8 +154,9 @@ async function extractPlans(plans){
             // }
 
         } 
-
-        return preparedPlans
+        
+        // Now that all the asynchronous operations are running, here we wait until they all complete.
+        return await Promise.all(preparedPlans)
         
     } catch(err){
         console.log(err)
@@ -175,12 +175,11 @@ async function extractBuilder(builders){
 
         for (index = 0; index < builders.length; index++) { 
             
-           let b = builders[index]
-            
-            preparedBuilders.push( await dataFunctions.returnHydratedModel(builderModel,b) )
+            let b = builders[index]
+            preparedBuilders.push(dataFunctions.returnHydratedModel(builderModel,b) )
         } 
 
-        return preparedBuilders
+        return await Promise.all(preparedBuilders) 
         
     } catch(err){
         console.log(err)
@@ -200,12 +199,10 @@ async function extractCommunityImages(images){
            let img = images[index]
            img.related_builder = memoryZuids.builder
             
-            preparedImages.push( 
-                await dataFunctions.returnHydratedModel(communityImageModel,img) 
-            )
+            preparedImages.push( dataFunctions.returnHydratedModel(communityImageModel,img) )
         } 
     
-        return preparedImages
+        return await Promise.all(preparedImages)
         
     } catch(err){
         console.log(err)
@@ -225,12 +222,10 @@ async function extractPlanImages(images){
             
            let img = images[index]
             
-            preparedImages.push( 
-                await dataFunctions.returnHydratedModel(planImageModel,img) 
-            )
+            preparedImages.push( dataFunctions.returnHydratedModel(planImageModel,img) )
         } 
 
-        return preparedImages
+        return await Promise.all(preparedImages)
         
     } catch(err){
         console.log(err)
