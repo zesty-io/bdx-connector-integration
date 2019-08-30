@@ -75,10 +75,11 @@ const exportBDXIntegration = async (req, res) => {
     // iterate through the parsed json to build the post bodies  
     try {
         preparedPostBodies.prepared = await parseBDX(preparedPostBodies.fullResponse)
+        res.send(preparedPostBodies.prepared )
     } catch(err) {
         res.send(err)
     }
-    res.send(preparedPostBodies.prepared )
+    
     return 
 
     // authenticate with to zesty through the wrapper
@@ -113,13 +114,14 @@ const exportBDXIntegration = async (req, res) => {
 
 async function parseBDX(bdxObj){
     
-    //return await extractBuilder(bdxObj.Builders.Corporation.Builder);
+    //return bdxObj.Builders.Corporation.Builder.Subdivision.Plan
+   
+
     let prepared = {
         corporate: await extractCorporate(bdxObj.Builders.Corporation),
         builders: await extractBuilder(bdxObj.Builders.Corporation.Builder),
         communityImages: await extractCommunityImages(bdxObj.Builders.Corporation.Builder.Subdivision.SubImage),
         plans: await extractPlans(bdxObj.Builders.Corporation.Builder.Subdivision.Plan),
-        planImages: await extractPlanImages(bdxObj.Builders.Corporation.Builder.Subdivision.Plan.PlanImages),
         specs: [],
         specImages: [],
     }
@@ -139,21 +141,28 @@ async function extractPlans(plans){
      try {
         let preparedPlans = []
 
-        for (index = 0; index < plans.length; index++) { 
-            let p = plans[index]
-            p.zestyMemoryBuilderZUID =  memoryZuids.builder
-            let plan = dataFunctions.returnHydratedModel(planModel,p)
-
-            preparedPlans.push(plan)
-            
-            // let apiPostBody = {
+       await Promise.all(
+            plans.map(async p => {
+                //console.log(p)
+                p.zestyMemoryBuilderZUID =  memoryZuids.builder
+                let plan = await dataFunctions.returnHydratedModel(planModel,p)
+                plan.elevationImages = await extractPlanElevationImages(p.PlanImages.ElevationImage)
+                console.log(p.PlanImages.InteriorImage)
+                plan.interiorImages = await extractPlanInteriorImages(p.PlanImages.InteriorImage)
+        
+                preparedPlans.push(plan )
+                
+            })
+               
+          
+        )
+         // let apiPostBody = {
             //     'content': planObject,
             //     'meta': {
             //         'path_part': zestyHelperFunctions.slugify(planObject.plan_name)
             //     }
             // }
 
-        } 
         
         // Now that all the asynchronous operations are running, here we wait until they all complete.
         return await Promise.all(preparedPlans)
@@ -169,66 +178,48 @@ async function extractPlans(plans){
 async function extractBuilder(builders){
     
     builders = Array.isArray(builders) ? builders : [builders]
-        
-     try {
-        let preparedBuilders = []
 
-        for (index = 0; index < builders.length; index++) { 
-            
-            let b = builders[index]
-            preparedBuilders.push(dataFunctions.returnHydratedModel(builderModel,b) )
-        } 
-
-        return await Promise.all(preparedBuilders) 
-        
-    } catch(err){
-        console.log(err)
-    }
+    return Promise.all(builders.map(blr => {
+        blr.related_builder = memoryZuids.builder
+        return dataFunctions.returnHydratedModel(builderModel,blr)       
+    })) 
 
 }
 
 async function extractCommunityImages(images){
-    
-    images = Array.isArray(images) ? images : [images]
-        
-     try {
-        let preparedImages = []
 
-        for (index = 0; index < images.length; index++) { 
-            
-           let img = images[index]
-           img.related_builder = memoryZuids.builder
-            
-            preparedImages.push( dataFunctions.returnHydratedModel(communityImageModel,img) )
-        } 
-    
-        return await Promise.all(preparedImages)
-        
-    } catch(err){
-        console.log(err)
+    if(!Array.isArray(images)){
+        images = [images]
     }
 
+    return Promise.all(images.map(img => {
+        img.related_builder = memoryZuids.builder
+        return dataFunctions.returnHydratedModel(communityImageModel,img)       
+    }))
+    
 }
 
 
-async function extractPlanImages(images){
+async function extractPlanElevationImages(images){
     
     images = Array.isArray(images) ? images : [images]
+    
+    return Promise.all(images.map(img => {
+        img.related_model = memoryZuids.plan
+        img.image_type = "Elevation"
+        return dataFunctions.returnHydratedModel(planImageModel,img)       
+    }))
         
-     try {
-        let preparedImages = []
+}
 
-        for (index = 0; index < images.length; index++) { 
-            
-           let img = images[index]
-            
-            preparedImages.push( dataFunctions.returnHydratedModel(planImageModel,img) )
-        } 
-
-        return await Promise.all(preparedImages)
+async function extractPlanInteriorImages(images){
+    
+    images = Array.isArray(images) ? images : [images]
+    
+    return Promise.all(images.map(img => {
+        img.related_model = '' //memoryZuids.plan
+        img.image_type = "Interior"
+        return dataFunctions.returnHydratedModel(planImageModel,img)       
+    }))
         
-    } catch(err){
-        console.log(err)
-    }
-
 }
