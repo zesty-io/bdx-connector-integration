@@ -143,7 +143,7 @@ async function extractPlans(plans){
 
        await Promise.all(
             plans.map(async p => {
-                console.log(p)
+                
                 p.zestyMemoryBuilderZUID =  memoryZuids.builder
                 let plan = await dataFunctions.returnHydratedModel(planModel,p)
                 plan.elevationImages = await extractPlanElevationImages(p.PlanImages.ElevationImage)
@@ -235,9 +235,41 @@ async function extractSpecs(specs){
 
         return Promise.all(specs.map(spec => {
             spec.related_model = memoryZuids.plan
-            return dataFunctions.returnHydratedModel(specModel,spec)       
+            let sc = dataFunctions.returnHydratedModel(specModel,spec)       
+             sc.elevationImages = extractPlanSpecElevationImages(spec.SpecImages.SpecElevationImage)
+            sc.interiorImages = extractPlanSpecInteriorImages(spec.SpecImages.SpecInteriorImage)
+            return sc
         }))
     } else {
         return []
     }   
+}
+
+
+async function extractPlanSpecElevationImages(images){
+    
+    if(Array.isArray(images)){
+        return Promise.all(images.map(img => {
+            img.related_model = memoryZuids.spec
+            img.image_type = "Elevation"
+            return dataFunctions.returnHydratedModel(specImageModel,img)       
+        }))
+    } else {
+        return []
+    }
+        
+}
+
+async function extractPlanSpecInteriorImages(images){
+    
+    if(Array.isArray(images)){
+        return Promise.all(images.map(img => {
+            img.related_model = memoryZuids.spec
+            img.image_type = "Interior"
+            return dataFunctions.returnHydratedModel(specImageModel,img)       
+        }))
+    } else {
+        return []
+    }
+        
 }
