@@ -147,9 +147,10 @@ async function extractPlans(plans){
                 p.zestyMemoryBuilderZUID =  memoryZuids.builder
                 let plan = await dataFunctions.returnHydratedModel(planModel,p)
                 plan.elevationImages = await extractPlanElevationImages(p.PlanImages.ElevationImage)
-                console.log(p.PlanImages.InteriorImage)
+                //console.log(p.PlanImages.InteriorImage)
                 plan.interiorImages = await extractPlanInteriorImages(p.PlanImages.InteriorImage)
-        
+                //plan.specs = await extractSpecs(p.Spec)
+
                 preparedPlans.push(plan )
                 
             })
@@ -202,24 +203,42 @@ async function extractCommunityImages(images){
 
 async function extractPlanElevationImages(images){
     
-    images = Array.isArray(images) ? images : [images]
-    
-    return Promise.all(images.map(img => {
-        img.related_model = memoryZuids.plan
-        img.image_type = "Elevation"
-        return dataFunctions.returnHydratedModel(planImageModel,img)       
-    }))
-        
+    if(Array.isArray(images)){
+        return Promise.all(images.map(img => {
+            img.related_model = memoryZuids.plan
+            img.image_type = "Elevation"
+            return dataFunctions.returnHydratedModel(planImageModel,img)       
+        }))
+    } else {
+        return []
+    }   
 }
 
 async function extractPlanInteriorImages(images){
     
-    images = Array.isArray(images) ? images : [images]
-    
-    return Promise.all(images.map(img => {
-        img.related_model = '' //memoryZuids.plan
-        img.image_type = "Interior"
-        return dataFunctions.returnHydratedModel(planImageModel,img)       
-    }))
+    if(Array.isArray(images)){
+        return Promise.all(images.map(img => {
+            img.related_model = memoryZuids.plan
+            img.image_type = "Interior"
+            return dataFunctions.returnHydratedModel(planImageModel,img)       
+        }))
+    } else {
+        return []
+    }
         
+}
+
+
+async function extractSpecs(specs){
+    
+    if(typeof specs !== "undefined"){
+        specs = Array.isArray(specs) ? specs : [specs]
+
+        return Promise.all(specs.map(spec => {
+            spec.related_model = memoryZuids.plan
+            return dataFunctions.returnHydratedModel(specModel,spec)       
+        }))
+    } else {
+        return []
+    }   
 }
