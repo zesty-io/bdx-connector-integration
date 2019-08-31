@@ -143,13 +143,12 @@ async function extractPlans(plans){
 
        await Promise.all(
             plans.map(async p => {
-                //console.log(p)
+                console.log(p)
                 p.zestyMemoryBuilderZUID =  memoryZuids.builder
                 let plan = await dataFunctions.returnHydratedModel(planModel,p)
                 plan.elevationImages = await extractPlanElevationImages(p.PlanImages.ElevationImage)
-                //console.log(p.PlanImages.InteriorImage)
                 plan.interiorImages = await extractPlanInteriorImages(p.PlanImages.InteriorImage)
-                //plan.specs = await extractSpecs(p.Spec)
+                plan.specs = await extractSpecs(p.Spec)
 
                 preparedPlans.push(plan )
                 
