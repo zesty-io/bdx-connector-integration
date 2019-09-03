@@ -23,6 +23,12 @@ let memoryZuids = {
     spec: ''
 }
 
+// models to reference before extracting to settings
+let zestyModels = {
+    corporate: '6-f6fcc2fe84-j7qt2d',
+    builder: '6-f4a0ad94fc-hm6v7x'
+}
+
 // functions and utils
 const dataFunctions             = require('./lib/dataFunctions.js')
 const ftpFunctions              = require('./lib/ftpFunctions.js')
@@ -43,8 +49,8 @@ const contentModelItemShape = {
         pathPart:""
     },
     meta:{
-        contentModelZUID:contentModel,
-        createdByUserZUID: userZUID
+        contentModelZUID: '',
+        createdByUserZUID: ''
     }
     
 }
@@ -90,17 +96,7 @@ const exportBDXIntegration = async (req, res) => {
     } catch(err) {
         res.send("Failed to read the XML file: " + err)
     }     
-     //res.send(preparedPostBodies.fullResponse )
     
-    // iterate through the parsed json to build the post bodies  
-    try {
-        preparedPostBodies.prepared = await parseBDX(preparedPostBodies.fullResponse)
-        res.send(preparedPostBodies.prepared )
-    } catch(err) {
-        res.send(err)
-    }
-    
-    return 
 
     // authenticate with to zesty through the wrapper
     try {
@@ -115,21 +111,35 @@ const exportBDXIntegration = async (req, res) => {
     try {
          zestyAPI = new Zesty(process.env.ZESTY_INSTANCE_ZUID, token, {
             logErrors: true,
-            logResponses: true
+            logResponses: false
         });
     } catch (err) {
         console.log(err);
     }
-  
-    // write to zesty
+
+
+    
+    // iterate through the parsed json to build the post bodies  
     try {
-        const settings = await zestyAPI.getSettings();
-        res.send(settings)
-    } catch (err) {
-        console.log(err);
+        preparedPostBodies.prepared = await parseBDX(preparedPostBodies.fullResponse)
+        res.send(preparedPostBodies.prepared )
+    } catch(err) {
+        res.send(err)
     }
+
+ 
+  
+    // // write to zesty
+    // try {
+    //     const settings = await zestyAPI.getSettings();
+    //     res.send(settings)
+    // } catch (err) {
+    //     console.log(err);
+    // }
     
 }
+
+
 
 
 async function parseBDX(bdxObj){
@@ -146,12 +156,20 @@ async function parseBDX(bdxObj){
 }
 
 async function extractCorporate(corporateObj){
-    
+    let corp
     try {
-        return await dataFunctions.returnHydratedModel(corporationModel,corporateObj)
+        corp =  await dataFunctions.returnHydratedModel(corporationModel,corporateObj)
     } catch(err) {
         res.send("Failed read corporation object: " + err)
     }  
+       
+    try {
+        memoryZuids.corporation = await importContent(corp.corporate_name, corp.corporate_name, zestyModels.corporate,corp)
+    } catch (err) {
+        console.log("Failed to insert into zesty: " + err)
+    }
+
+    return corp
 }
 
 async function extractPlans(plans){
@@ -170,18 +188,9 @@ async function extractPlans(plans){
 
                 preparedPlans.push(plan )
                 
-            })
-               
-          
+            }) 
         )
-         // let apiPostBody = {
-            //     'content': planObject,
-            //     'meta': {
-            //         'path_part': zestyHelperFunctions.slugify(planObject.plan_name)
-            //     }
-            // }
 
-        
         // Now that all the asynchronous operations are running, here we wait until they all complete.
         return await Promise.all(preparedPlans)
         
@@ -204,7 +213,15 @@ async function extractBuilder(builders){
         // grab each agent name       
         hb.sales_office_agent_1 = eval("bldr." + new String (builderModel.sales_office_agent_1)+".trim()")
         hb.sales_office_agent_2 = eval("bldr." + new String (builderModel.sales_office_agent_2)+".trim()")  
+        hb.related_corporation = memoryZuids.corporation
         // insert into zesty, grab zuid on return, and set into memory object
+        try {
+            memoryZuids.builder = await importContent(hb.brand_name, hb.subdivision_description, zestyModels.builder,hb)
+        } catch (err) {
+            console.log(err)
+        }
+
+
         hb.communityImages = await extractCommunityImages(bldr.Subdivision.SubImage)
 
         // get plans 
@@ -274,4 +291,43 @@ async function extractPlanSpecImages(imageType,images){
         return []
     }
         
+}
+
+
+// create an ASYNC function for importing content
+async function importContent(title, description, contentModelZUID, data){
+
+    // use newItem.web.pathPart to check check if it exists, if so, return the zuid, if not, create
+    // prepare for zesty
+    let zestyItem = contentModelItemShape
+    zestyItem.data = data
+    zestyItem.web = returnWebData(title, description)
+    zestyItem.meta = returnMetaData(contentModelZUID)
+    
+    try {
+        res = await zestyAPI.createItem(contentModelZUID, zestyItem);
+        return res.data.ZUID
+        
+    } catch(error){
+        console.log(error);
+    }
+    
+}
+
+function returnWebData(title, description){
+    return {
+        canonicalTagMode: 1,
+        metaLinkText: dataFunctions.makeLinkText(title),
+        metaTitle: dataFunctions.makeMetaTitle(title),
+        metaKeywords: ' ',
+        metaDescription: dataFunctions.makeMetaDescription(description),
+        pathPart: dataFunctions.makePathPart(title)
+    }
+}
+
+function returnMetaData(contentModelZuid){
+    return {
+        contentModelZUID: contentModelZuid,
+        createdByUserZUID: '8-bdx-integration',
+    }
 }
