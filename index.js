@@ -178,9 +178,14 @@ async function extractBuilder(builders){
     
     builders = Array.isArray(builders) ? builders : [builders]
 
-    return Promise.all(builders.map(blr => {
-        blr.related_builder = memoryZuids.builder
-        return dataFunctions.returnHydratedModel(builderModel,blr)       
+    return Promise.all(builders.map(async bldr => {
+        bldr.related_builder = memoryZuids.builder
+        
+        let hb = await dataFunctions.returnHydratedModel(builderModel,bldr)     
+        // grab each agent name       
+        hb.sales_office_agent_1 = eval("bldr." + new String (builderModel.sales_office_agent_1)+".trim()")
+        hb.sales_office_agent_2 = eval("bldr." + new String (builderModel.sales_office_agent_2)+".trim()")  
+        return hb
     })) 
 
 }
