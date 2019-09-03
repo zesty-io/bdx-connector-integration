@@ -29,6 +29,26 @@ const ftpFunctions              = require('./lib/ftpFunctions.js')
 const xmlFunctions              = require('./lib/xmlFunctions.js')
 const zestyHelperFunctions      = require('./lib/zestyHelperFunctions.js')
 
+// This JSON object is modeled to match the shape of the Product Content Model in Zesty.io
+
+const contentModelItemShape = {
+    data: {
+    },
+    web: {
+        canonicalTagMode: 1,
+        metaLinkText: '',
+        metaTitle: '',
+        metaKeywords: ' ',
+        metaDescription: '',
+        pathPart:""
+    },
+    meta:{
+        contentModelZUID:contentModel,
+        createdByUserZUID: userZUID
+    }
+    
+}
+
 // Cloud Function
 
 exports.bdxIntegration = (req, res) => {
@@ -120,8 +140,7 @@ async function parseBDX(bdxObj){
     let prepared = {
         corporate: await extractCorporate(bdxObj.Builders.Corporation),
         builders: await extractBuilder(bdxObj.Builders.Corporation.Builder),
-        communityImages: await extractCommunityImages(bdxObj.Builders.Corporation.Builder.Subdivision.SubImage),
-        plans: await extractPlans(bdxObj.Builders.Corporation.Builder.Subdivision.Plan),
+        
     }
     return prepared
 }
@@ -144,9 +163,9 @@ async function extractPlans(plans){
                 
                 p.zestyMemoryBuilderZUID =  memoryZuids.builder
                 let plan = await dataFunctions.returnHydratedModel(planModel,p)
-                plan.elevationImages = await extractPlanElevationImages(p.PlanImages.ElevationImage)
-                plan.interiorImages = await extractPlanInteriorImages(p.PlanImages.InteriorImage)
-                plan.floorPlanImages = await extractPlanFloorPlanImages(p.PlanImages.FloorPlanImage)
+                plan.elevationImages = await extractPlanImages("elevation",p.PlanImages.ElevationImage)
+                plan.interiorImages = await extractPlanImages("interior",p.PlanImages.InteriorImage)
+                plan.floorPlanImages = await extractPlanImages("floorplan",p.PlanImages.FloorPlanImage)
                 plan.specs = await extractSpecs(p.Spec)
 
                 preparedPlans.push(plan )
@@ -185,6 +204,12 @@ async function extractBuilder(builders){
         // grab each agent name       
         hb.sales_office_agent_1 = eval("bldr." + new String (builderModel.sales_office_agent_1)+".trim()")
         hb.sales_office_agent_2 = eval("bldr." + new String (builderModel.sales_office_agent_2)+".trim()")  
+        // insert into zesty, grab zuid on return, and set into memory object
+        hb.communityImages = await extractCommunityImages(bldr.Subdivision.SubImage)
+
+        // get plans 
+        hb.plans = await extractPlans(bldr.Subdivision.Plan)
+
         return hb
     })) 
 
@@ -204,44 +229,17 @@ async function extractCommunityImages(images){
 }
 
 
-async function extractPlanFloorPlanImages(images){
+async function extractPlanImages(imageType,images){
     
     if(Array.isArray(images)){
         return Promise.all(images.map(img => {
             img.related_model = memoryZuids.plan
-            img.image_type = "FloorPlan"
+            img.image_type = imageType
             return dataFunctions.returnHydratedModel(planImageModel,img)       
         }))
     } else {
         return []
     }   
-}
-
-async function extractPlanElevationImages(images){
-    
-    if(Array.isArray(images)){
-        return Promise.all(images.map(img => {
-            img.related_model = memoryZuids.plan
-            img.image_type = "Elevation"
-            return dataFunctions.returnHydratedModel(planImageModel,img)       
-        }))
-    } else {
-        return []
-    }   
-}
-
-async function extractPlanInteriorImages(images){
-    
-    if(Array.isArray(images)){
-        return Promise.all(images.map(img => {
-            img.related_model = memoryZuids.plan
-            img.image_type = "Interior"
-            return dataFunctions.returnHydratedModel(planImageModel,img)       
-        }))
-    } else {
-        return []
-    }
-        
 }
 
 
@@ -253,10 +251,10 @@ async function extractSpecs(specs){
         return Promise.all(specs.map(async spec => {
             spec.related_model = memoryZuids.plan
             let sc = await dataFunctions.returnHydratedModel(specModel,spec) 
-            //console.log(spec.SpecImages.SpecElevationImage)      
-            sc.specElevationImages = await extractPlanSpecElevationImages(spec.SpecImages.SpecElevationImage)
-            sc.specInteriorImages = await extractPlanSpecInteriorImages(spec.SpecImages.SpecInteriorImage)
-            sc.specFloorPlanImages = await extractPlanSpecFloorPlanImages(spec.SpecImages.SpecFloorPlanImage)
+            // add to zesty here 
+            sc.specElevationImages = await extractPlanSpecImages("elevation",spec.SpecImages.SpecElevationImage)
+            sc.specInteriorImages = await extractPlanSpecImages("interior",spec.SpecImages.SpecInteriorImage)
+            sc.specFloorPlanImages = await extractPlanSpecImages("floorplan",spec.SpecImages.SpecFloorPlanImage)
             return sc
         }))
     } else {
@@ -264,41 +262,12 @@ async function extractSpecs(specs){
     }   
 }
 
-async function extractPlanSpecFloorPlanImages(images){
+async function extractPlanSpecImages(imageType,images){
     
     if(Array.isArray(images)){
         return Promise.all(images.map(async img => {  
             img.related_spec = memoryZuids.spec
-            img.image_type = "FloorPlan"
-            return await dataFunctions.returnHydratedModel(specImageModel,img)       
-        }))
-    } else {
-        return []
-    }
-        
-}
-
-
-async function extractPlanSpecElevationImages(images){
-    
-    if(Array.isArray(images)){
-        return Promise.all(images.map(async img => {  
-            img.related_spec = memoryZuids.spec
-            img.image_type = "Elevation"
-            return await dataFunctions.returnHydratedModel(specImageModel,img)       
-        }))
-    } else {
-        return []
-    }
-        
-}
-
-async function extractPlanSpecInteriorImages(images){
-    
-    if(Array.isArray(images)){
-        return Promise.all(images.map(async img => {
-            img.related_spec = memoryZuids.spec
-            img.image_type = "Interior"
+            img.image_type = imageType
             return await dataFunctions.returnHydratedModel(specImageModel,img)       
         }))
     } else {
