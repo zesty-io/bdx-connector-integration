@@ -146,6 +146,7 @@ async function extractPlans(plans){
                 let plan = await dataFunctions.returnHydratedModel(planModel,p)
                 plan.elevationImages = await extractPlanElevationImages(p.PlanImages.ElevationImage)
                 plan.interiorImages = await extractPlanInteriorImages(p.PlanImages.InteriorImage)
+                plan.floorPlanImages = await extractPlanFloorPlanImages(p.PlanImages.FloorPlanImage)
                 plan.specs = await extractSpecs(p.Spec)
 
                 preparedPlans.push(plan )
@@ -198,6 +199,19 @@ async function extractCommunityImages(images){
 }
 
 
+async function extractPlanFloorPlanImages(images){
+    
+    if(Array.isArray(images)){
+        return Promise.all(images.map(img => {
+            img.related_model = memoryZuids.plan
+            img.image_type = "FloorPlan"
+            return dataFunctions.returnHydratedModel(planImageModel,img)       
+        }))
+    } else {
+        return []
+    }   
+}
+
 async function extractPlanElevationImages(images){
     
     if(Array.isArray(images)){
@@ -237,6 +251,7 @@ async function extractSpecs(specs){
             //console.log(spec.SpecImages.SpecElevationImage)      
             sc.specElevationImages = await extractPlanSpecElevationImages(spec.SpecImages.SpecElevationImage)
             sc.specInteriorImages = await extractPlanSpecInteriorImages(spec.SpecImages.SpecInteriorImage)
+            sc.specFloorPlanImages = await extractPlanSpecFloorPlanImages(spec.SpecImages.SpecFloorPlanImage)
             return sc
         }))
     } else {
@@ -244,12 +259,26 @@ async function extractSpecs(specs){
     }   
 }
 
+async function extractPlanSpecFloorPlanImages(images){
+    
+    if(Array.isArray(images)){
+        return Promise.all(images.map(async img => {  
+            img.related_spec = memoryZuids.spec
+            img.image_type = "FloorPlan"
+            return await dataFunctions.returnHydratedModel(specImageModel,img)       
+        }))
+    } else {
+        return []
+    }
+        
+}
+
 
 async function extractPlanSpecElevationImages(images){
     
     if(Array.isArray(images)){
         return Promise.all(images.map(async img => {  
-            img.related_model = memoryZuids.spec
+            img.related_spec = memoryZuids.spec
             img.image_type = "Elevation"
             return await dataFunctions.returnHydratedModel(specImageModel,img)       
         }))
@@ -263,7 +292,7 @@ async function extractPlanSpecInteriorImages(images){
     
     if(Array.isArray(images)){
         return Promise.all(images.map(async img => {
-            img.related_model = memoryZuids.spec
+            img.related_spec = memoryZuids.spec
             img.image_type = "Interior"
             return await dataFunctions.returnHydratedModel(specImageModel,img)       
         }))
