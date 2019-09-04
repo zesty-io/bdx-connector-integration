@@ -26,7 +26,8 @@ let memoryZuids = {
 // models to reference before extracting to settings
 let zestyModels = {
     corporate: '6-f6fcc2fe84-j7qt2d',
-    builder: '6-f4a0ad94fc-hm6v7x'
+    builder: '6-f4a0ad94fc-hm6v7x',
+    communityImages: '6-8ef3aabab8-wzxp40'
 }
 
 // functions and utils
@@ -143,9 +144,6 @@ const exportBDXIntegration = async (req, res) => {
 
 
 async function parseBDX(bdxObj){
-    
-    //return bdxObj.Builders.Corporation.Builder.Subdivision.Plan
-   
 
     let prepared = {
         corporate: await extractCorporate(bdxObj.Builders.Corporation),
@@ -164,7 +162,14 @@ async function extractCorporate(corporateObj){
     }  
        
     try {
-        memoryZuids.corporation = await importContent(corp.corporate_name, corp.corporate_name, zestyModels.corporate,corp)
+        memoryZuids.corporation = await importContent(
+            zestyAPI, 
+            '/'+dataFunctions.makePathPart(corp.corporate_name)+'/', 
+            corp.corporate_name, 
+            corp.corporate_name, 
+            zestyModels.corporate,
+            corp
+            )
     } catch (err) {
         console.log("Failed to insert into zesty: " + err)
     }
@@ -216,7 +221,13 @@ async function extractBuilder(builders){
         hb.related_corporation = memoryZuids.corporation
         // insert into zesty, grab zuid on return, and set into memory object
         try {
-            memoryZuids.builder = await importContent(hb.brand_name, hb.subdivision_description, zestyModels.builder,hb)
+            memoryZuids.builder = await importContent(
+                zestyAPI,
+                '/'+dataFunctions.makePathPart(hb.brand_name)+'/',
+                hb.brand_name, 
+                hb.subdivision_description, 
+                zestyModels.builder,hb
+                )
         } catch (err) {
             console.log(err)
         }
@@ -238,9 +249,24 @@ async function extractCommunityImages(images){
         images = [images]
     }
 
-    return Promise.all(images.map(img => {
+    return Promise.all(images.map(async img => {
         img.related_builder = memoryZuids.builder
-        return dataFunctions.returnHydratedModel(communityImageModel,img)       
+        let hi = await dataFunctions.returnHydratedModel(communityImageModel,img)       
+        // insert into zesty, grab zuid on return, and set into memory object
+        try {
+            importContent(
+                zestyAPI,
+                hi.title,
+                hi.title,
+                hi.title, 
+                zestyModels.communityImages,
+                hi,
+                true
+                )
+        } catch (err) {
+            console.log(err)
+        }
+
     }))
     
 }
@@ -269,9 +295,11 @@ async function extractSpecs(specs){
             spec.related_model = memoryZuids.plan
             let sc = await dataFunctions.returnHydratedModel(specModel,spec) 
             // add to zesty here 
-            sc.specElevationImages = await extractPlanSpecImages("elevation",spec.SpecImages.SpecElevationImage)
-            sc.specInteriorImages = await extractPlanSpecImages("interior",spec.SpecImages.SpecInteriorImage)
-            sc.specFloorPlanImages = await extractPlanSpecImages("floorplan",spec.SpecImages.SpecFloorPlanImage)
+            if(spec.SpecImages !== undefined){
+                sc.specElevationImages = await extractPlanSpecImages("elevation",spec.SpecImages.SpecElevationImage)
+                sc.specInteriorImages = await extractPlanSpecImages("interior",spec.SpecImages.SpecInteriorImage)
+                sc.specFloorPlanImages = await extractPlanSpecImages("floorplan",spec.SpecImages.SpecFloorPlanImage)
+            }
             return sc
         }))
     } else {
@@ -294,18 +322,27 @@ async function extractPlanSpecImages(imageType,images){
 }
 
 
-// create an ASYNC function for importing content
-async function importContent(title, description, contentModelZUID, data){
+// an ASYNC function for importing content
+async function importContent(zestyObj, preexistingSearchString, title, description, contentModelZUID, data, dataset=false){
 
     // use newItem.web.pathPart to check check if it exists, if so, return the zuid, if not, create
+    let exists = await searchZesty(zestyObj, preexistingSearchString)
+    // ife
+    if(exists !== false) return exists
+
     // prepare for zesty
     let zestyItem = contentModelItemShape
     zestyItem.data = data
     zestyItem.web = returnWebData(title, description)
     zestyItem.meta = returnMetaData(contentModelZUID)
+
+    if(dataset == true){
+        delete zestyItem.web.pathPart
+    }
     
     try {
-        res = await zestyAPI.createItem(contentModelZUID, zestyItem);
+        //console.log(zestyItem)
+        res = await zestyObj.createItem(contentModelZUID, zestyItem);
         return res.data.ZUID
         
     } catch(error){
@@ -313,6 +350,24 @@ async function importContent(title, description, contentModelZUID, data){
     }
     
 }
+
+// an ASYNC function for importing content
+async function searchZesty(zestyObj, searchString){
+  try {
+        res = await zestyObj.search(searchString);
+        if(res.data.length > 0){
+            console.log(searchString)
+            console.log(res.data[0])
+            return res.data[0].meta.ZUID
+        } else {
+            return false
+        }
+       
+    } catch(error){
+        console.log(error);
+    }
+}
+
 
 function returnWebData(title, description){
     return {
