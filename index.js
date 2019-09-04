@@ -102,7 +102,7 @@ const exportBDXIntegration = async (req, res) => {
     try {
          zestyAPI = new Zesty(process.env.ZESTY_INSTANCE_ZUID, token, {
             logErrors: true,
-            logResponses: false
+            logResponses: true
         });
     } catch (err) {
         console.log(err);
@@ -380,6 +380,7 @@ async function importContent(zestyObj, preexistingSearchString, title, descripti
     let zestyItem = contentModelItemShape
     zestyItem.data = data
     zestyItem.web = returnWebData(title, description)
+    zestyItem.web.parentZUID = parentZuid
     zestyItem.meta = returnMetaData(contentModelZUID,parentZuid)
 
     console.log(zestyItem)
@@ -388,12 +389,11 @@ async function importContent(zestyObj, preexistingSearchString, title, descripti
     }
     
     try {
-        // //console.log(zestyItem)
-        // res = await zestyObj.createItem(contentModelZUID, zestyItem);
-        // let zuid = res.data.ZUID
-        // await publishItem(zestyObj,contentModelZUID,zuid,1)
-        // return zuid
-        return 'asd'
+        
+        res = await zestyObj.createItem(contentModelZUID, zestyItem);
+        let zuid = res.data.ZUID
+        await publishItem(zestyObj,contentModelZUID,zuid,1)
+        return zuid
         
     } catch(error){
         console.log(error);
@@ -447,7 +447,7 @@ function returnWebData(title, description){
 function returnMetaData(contentModelZuid, parentZUID=''){
     return {
         contentModelZUID: contentModelZuid,
-        createdByUserZUID: '8-bdx-integration',
+        createdByUserZUID: '5-909df5a9ff-9tbxjj',
         parentZUID: parentZUID
     }
 }
