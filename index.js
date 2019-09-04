@@ -17,17 +17,26 @@ const specImageModel = require('./lib/models/spec-image.js')
 
 // memory store
 let memoryZuids = {
+    homeSearch: '7-e14edc-fnmrtv',
     builder: '',
     corporation: '',
     plan: '',
     spec: ''
 }
 
+// building the URL path
+
+//  /:builder/:plan_name/:spec_id/
+
 // models to reference before extracting to settings
 let zestyModels = {
     corporate: '6-f6fcc2fe84-j7qt2d',
     builder: '6-f4a0ad94fc-hm6v7x',
-    communityImages: '6-8ef3aabab8-wzxp40'
+    communityImages: '6-8ef3aabab8-wzxp40',
+    plans: '6-faff74-pnqf1f',
+    planImages: '6-a0b599c9d6-cnvwt8',
+    specs: '6-6a2e70-k254c2',
+    specImages: '6-92e4ebb897-l88c9s',
 }
 
 // functions and utils
@@ -36,25 +45,6 @@ const ftpFunctions              = require('./lib/ftpFunctions.js')
 const xmlFunctions              = require('./lib/xmlFunctions.js')
 const zestyHelperFunctions      = require('./lib/zestyHelperFunctions.js')
 
-// This JSON object is modeled to match the shape of the Product Content Model in Zesty.io
-
-const contentModelItemShape = {
-    data: {
-    },
-    web: {
-        canonicalTagMode: 1,
-        metaLinkText: '',
-        metaTitle: '',
-        metaKeywords: ' ',
-        metaDescription: '',
-        pathPart:""
-    },
-    meta:{
-        contentModelZUID: '',
-        createdByUserZUID: ''
-    }
-    
-}
 
 // Cloud Function
 
@@ -148,7 +138,6 @@ async function parseBDX(bdxObj){
     let prepared = {
         corporate: await extractCorporate(bdxObj.Builders.Corporation),
         builders: await extractBuilder(bdxObj.Builders.Corporation.Builder),
-        
     }
     return prepared
 }
@@ -177,18 +166,85 @@ async function extractCorporate(corporateObj){
     return corp
 }
 
+async function extractBuilder(builders){
+    
+    builders = Array.isArray(builders) ? builders : [builders]
+
+    return Promise.all(builders.map(async bldr => {
+        bldr.related_builder = memoryZuids.builder
+        
+        let hb = await dataFunctions.returnHydratedModel(builderModel,bldr)     
+        // grab each agent name       
+        hb.sales_office_agent_1 = eval("bldr." + new String (builderModel.sales_office_agent_1)+".trim()")
+        hb.sales_office_agent_2 = eval("bldr." + new String (builderModel.sales_office_agent_2)+".trim()")  
+        hb.related_corporation = memoryZuids.corporation
+
+        // get parent path
+        let pageParent = await searchZesty(zestyAPI, memoryZuids.homeSearch)
+        let pathParent = pageParent[0].web.path
+
+        // insert into zesty, grab zuid on return, and set into memory object
+        try {
+            memoryZuids.builder = await importContent(
+                zestyAPI,
+                pathParent+dataFunctions.makePathPart(hb.brand_name)+'/',
+                hb.brand_name, 
+                hb.subdivision_description, 
+                zestyModels.builder,
+                hb,
+                zestyModels.homeSearch
+                )
+        } catch (err) {
+            console.log(err)
+        }
+
+        hb.communityImages = await extractCommunityImages(bldr.Subdivision.SubImage)
+
+        // get plans 
+        hb.plans = await extractPlans(bldr.Subdivision.Plan)
+
+        return hb
+    })) 
+
+}
+
 async function extractPlans(plans){
      try {
         let preparedPlans = []
+        
+        // get parent path from the builder zuid
+        let pageParent = await searchZesty(zestyAPI, memoryZuids.builder)
+        console.log('plans parent: ' +memoryZuids.builder)
+        let pathParent = pageParent[0].web.path
+           
 
-       await Promise.all(
+        await Promise.all(
             plans.map(async p => {
                 
                 p.zestyMemoryBuilderZUID =  memoryZuids.builder
                 let plan = await dataFunctions.returnHydratedModel(planModel,p)
-                plan.elevationImages = await extractPlanImages("elevation",p.PlanImages.ElevationImage)
-                plan.interiorImages = await extractPlanImages("interior",p.PlanImages.InteriorImage)
-                plan.floorPlanImages = await extractPlanImages("floorplan",p.PlanImages.FloorPlanImage)
+                
+                // insert into zesty, grab zuid on return, and set into memory object
+                try {
+                    memoryZuids.plan = await importContent(
+                        zestyAPI,
+                        pathParent+dataFunctions.makePathPart(plan.plan_name)+'/',
+                        plan.plan_name, 
+                        plan.description, 
+                        zestyModels.plans,
+                        plan,
+                        memoryZuids.builder
+                        )
+                } catch (err) {
+                    console.log(err)
+                }
+
+                // get the images
+                if(p.PlanImages !== undefined){
+                    plan.elevationImages = await extractPlanImages("elevation",p.PlanImages.ElevationImage)
+                    plan.interiorImages = await extractPlanImages("interior",p.PlanImages.InteriorImage)
+                    plan.floorPlanImages = await extractPlanImages("floorplan",p.PlanImages.FloorPlanImage)
+                }
                 plan.specs = await extractSpecs(p.Spec)
 
                 preparedPlans.push(plan )
@@ -202,44 +258,6 @@ async function extractPlans(plans){
     } catch(err){
         console.log(err)
     }
-
-}
-
-
-
-async function extractBuilder(builders){
-    
-    builders = Array.isArray(builders) ? builders : [builders]
-
-    return Promise.all(builders.map(async bldr => {
-        bldr.related_builder = memoryZuids.builder
-        
-        let hb = await dataFunctions.returnHydratedModel(builderModel,bldr)     
-        // grab each agent name       
-        hb.sales_office_agent_1 = eval("bldr." + new String (builderModel.sales_office_agent_1)+".trim()")
-        hb.sales_office_agent_2 = eval("bldr." + new String (builderModel.sales_office_agent_2)+".trim()")  
-        hb.related_corporation = memoryZuids.corporation
-        // insert into zesty, grab zuid on return, and set into memory object
-        try {
-            memoryZuids.builder = await importContent(
-                zestyAPI,
-                '/'+dataFunctions.makePathPart(hb.brand_name)+'/',
-                hb.brand_name, 
-                hb.subdivision_description, 
-                zestyModels.builder,hb
-                )
-        } catch (err) {
-            console.log(err)
-        }
-
-
-        hb.communityImages = await extractCommunityImages(bldr.Subdivision.SubImage)
-
-        // get plans 
-        hb.plans = await extractPlans(bldr.Subdivision.Plan)
-
-        return hb
-    })) 
 
 }
 
@@ -261,6 +279,7 @@ async function extractCommunityImages(images){
                 hi.title, 
                 zestyModels.communityImages,
                 hi,
+                '',
                 true
                 )
         } catch (err) {
@@ -293,7 +312,8 @@ async function extractSpecs(specs){
 
         return Promise.all(specs.map(async spec => {
             spec.related_model = memoryZuids.plan
-            let sc = await dataFunctions.returnHydratedModel(specModel,spec) 
+            let sc = await dataFunctions.returnHydratedModel(specModel,spec)
+
             // add to zesty here 
             if(spec.SpecImages !== undefined){
                 sc.specElevationImages = await extractPlanSpecImages("elevation",spec.SpecImages.SpecElevationImage)
@@ -322,28 +342,58 @@ async function extractPlanSpecImages(imageType,images){
 }
 
 
+// This JSON object is modeled to match the shape of the Product Content Model in Zesty.io
+
+const contentModelItemShape = {
+    data: {
+    },
+    web: {
+        canonicalTagMode: 1,
+        metaLinkText: '',
+        metaTitle: '',
+        metaKeywords: ' ',
+        metaDescription: '',
+        pathPart:""
+    },
+    meta:{
+        contentModelZUID: '',
+        createdByUserZUID: '',
+        parentZUID: ''
+    }
+    
+}
+
 // an ASYNC function for importing content
-async function importContent(zestyObj, preexistingSearchString, title, description, contentModelZUID, data, dataset=false){
+async function importContent(zestyObj, preexistingSearchString, title, description, contentModelZUID, data, parentZuid='', dataset=false){
+
+    if(dataset == true){
+       preexistingSearchString = dataFunctions.makeLinkText(preexistingSearchString)
+    }    
 
     // use newItem.web.pathPart to check check if it exists, if so, return the zuid, if not, create
     let exists = await searchZesty(zestyObj, preexistingSearchString)
-    // ife
-    if(exists !== false) return exists
+    
+    // if it exists, return the item zuid from the search
+    if(exists !== false) return exists[0].meta.ZUID
 
     // prepare for zesty
     let zestyItem = contentModelItemShape
     zestyItem.data = data
     zestyItem.web = returnWebData(title, description)
-    zestyItem.meta = returnMetaData(contentModelZUID)
+    zestyItem.meta = returnMetaData(contentModelZUID,parentZuid)
 
+    console.log(zestyItem)
     if(dataset == true){
         delete zestyItem.web.pathPart
     }
     
     try {
-        //console.log(zestyItem)
-        res = await zestyObj.createItem(contentModelZUID, zestyItem);
-        return res.data.ZUID
+        // //console.log(zestyItem)
+        // res = await zestyObj.createItem(contentModelZUID, zestyItem);
+        // let zuid = res.data.ZUID
+        // await publishItem(zestyObj,contentModelZUID,zuid,1)
+        // return zuid
+        return 'asd'
         
     } catch(error){
         console.log(error);
@@ -354,17 +404,31 @@ async function importContent(zestyObj, preexistingSearchString, title, descripti
 // an ASYNC function for importing content
 async function searchZesty(zestyObj, searchString){
   try {
-        res = await zestyObj.search(searchString);
+        
+        let res = await zestyObj.search(searchString);
         if(res.data.length > 0){
-            console.log(searchString)
-            console.log(res.data[0])
-            return res.data[0].meta.ZUID
+            console.log(res.data.length+' Search results for: '+searchString)
+            //console.log(res.data[0].web)
+            return res.data
         } else {
+            console.log('NO search results for: '+searchString)
             return false
         }
        
     } catch(error){
         console.log(error);
+    }
+}
+
+async function publishItem(zestyObj, modelZuid,itemZuid,versionNumber=1){
+    try {
+        const res = await zestyObj.publishItemImmediately(
+            modelZuid,
+            itemZuid,
+            versionNumber
+        );
+    } catch (err) {
+        console.log(err);
     }
 }
 
@@ -380,9 +444,10 @@ function returnWebData(title, description){
     }
 }
 
-function returnMetaData(contentModelZuid){
+function returnMetaData(contentModelZuid, parentZUID=''){
     return {
         contentModelZUID: contentModelZuid,
         createdByUserZUID: '8-bdx-integration',
+        parentZUID: parentZUID
     }
 }
