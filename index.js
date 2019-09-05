@@ -374,7 +374,26 @@ async function extractPlanSpecImages(imageType,images){
         return Promise.all(images.map(async img => {  
             img.related_spec = memoryZuids.spec
             img.image_type = imageType
-            return await dataFunctions.returnHydratedModel(specImageModel,img)       
+            let hi =  await dataFunctions.returnHydratedModel(specImageModel,img)       
+            let name = hi.image_type + " "+ memoryZuids.plan + " " + hi.sort_order
+
+            // insert into zesty, grab zuid on return, and set into memory object
+            try {
+                await importContent(
+                    zestyAPI,
+                    name,
+                    name,
+                    "", 
+                    zestyModels.specImages,
+                    hi,
+                    '',
+                    true
+                    )
+            } catch (err) {
+                console.log(err)
+            }
+
+            return hi
         }))
     } else {
         return []
