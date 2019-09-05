@@ -29,7 +29,7 @@ let memoryZuids = {
 //  /:builder/:plan_name/:spec_id/
 
 // models to reference before extracting to settings
-let zestyModels = {
+let zestyModelZUIDs = {
     corporate: '6-f6fcc2fe84-j7qt2d',
     builder: '6-f4a0ad94fc-hm6v7x',
     communityImages: '6-8ef3aabab8-wzxp40',
@@ -156,7 +156,7 @@ async function extractCorporate(corporateObj){
             '/'+dataFunctions.makePathPart(corp.corporate_name)+'/', 
             corp.corporate_name, 
             corp.corporate_name, 
-            zestyModels.corporate,
+            zestyModelZUIDs.corporate,
             corp
             )
     } catch (err) {
@@ -190,9 +190,9 @@ async function extractBuilder(builders){
                 pathParent+dataFunctions.makePathPart(hb.brand_name)+'/',
                 hb.brand_name, 
                 hb.subdivision_description, 
-                zestyModels.builder,
+                zestyModelZUIDs.builder,
                 hb,
-                zestyModels.homeSearch
+                zestyModelZUIDs.homeSearch
                 )
         } catch (err) {
             console.log(err)
@@ -231,7 +231,7 @@ async function extractPlans(plans){
                         pathParent+dataFunctions.makePathPart(plan.plan_name)+'/',
                         plan.plan_name, 
                         plan.description, 
-                        zestyModels.plans,
+                        zestyModelZUIDs.plans,
                         plan,
                         memoryZuids.builder
                         )
@@ -277,7 +277,7 @@ async function extractCommunityImages(images){
                 hi.title,
                 hi.title,
                 hi.title, 
-                zestyModels.communityImages,
+                zestyModelZUIDs.communityImages,
                 hi,
                 '',
                 true
@@ -307,7 +307,7 @@ async function extractPlanImages(imageType,images){
                     name,
                     name,
                     "", 
-                    zestyModels.planImages,
+                    zestyModelZUIDs.planImages,
                     hi,
                     '',
                     true
@@ -347,7 +347,7 @@ async function extractSpecs(specs){
                     pathParent+dataFunctions.makePathPart(hs.spec_id)+'/',
                     hs.spec_id, 
                     hs.spec_description, 
-                    zestyModels.specs,
+                    zestyModelZUIDs.specs,
                     hs,
                     memoryZuids.plan
                     )
@@ -384,7 +384,7 @@ async function extractPlanSpecImages(imageType,images){
                     name,
                     name,
                     "", 
-                    zestyModels.specImages,
+                    zestyModelZUIDs.specImages,
                     hi,
                     '',
                     true
