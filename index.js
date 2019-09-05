@@ -223,10 +223,10 @@ async function extractPlans(plans){
                 
                 p.zestyMemoryBuilderZUID =  memoryZuids.builder
                 let plan = await dataFunctions.returnHydratedModel(planModel,p)
-                
+                let planZUID
                 // insert into zesty, grab zuid on return, and set into memory object
                 try {
-                    memoryZuids.plan = await importContent(
+                     planZUID = await importContent(
                         zestyAPI,
                         pathParent+dataFunctions.makePathPart(plan.plan_name)+'/',
                         plan.plan_name, 
@@ -235,17 +235,18 @@ async function extractPlans(plans){
                         plan,
                         memoryZuids.builder
                         )
+                    memoryZuids.plan = planZUID
                 } catch (err) {
                     console.log(err)
                 }
 
                 // get the images
                 if(p.PlanImages !== undefined){
-                    plan.elevationImages = await extractPlanImages("elevation",p.PlanImages.ElevationImage)
-                    plan.interiorImages = await extractPlanImages("interior",p.PlanImages.InteriorImage)
-                    plan.floorPlanImages = await extractPlanImages("floorplan",p.PlanImages.FloorPlanImage)
+                    plan.elevationImages = await extractPlanImages("elevation",p.PlanImages.ElevationImage,planZUID)
+                    plan.interiorImages = await extractPlanImages("interior",p.PlanImages.InteriorImage,planZUID)
+                    plan.floorPlanImages = await extractPlanImages("floorplan",p.PlanImages.FloorPlanImage,planZUID)
                 }
-                plan.specs = await extractSpecs(p.Spec)
+                plan.specs = await extractSpecs(p.Spec,planZUID)
 
                 preparedPlans.push(plan )
                 
@@ -285,20 +286,20 @@ async function extractCommunityImages(images){
         } catch (err) {
             console.log(err)
         }
-
+        return hi
     }))
     
 }
 
 
-async function extractPlanImages(imageType,images){
+async function extractPlanImages(imageType,images, planZUID){
     
     if(Array.isArray(images)){
         return Promise.all(images.map(async img => {
-            img.related_model = memoryZuids.plan
+            img.related_model = planZUID
             img.image_type = imageType
             let hi = await dataFunctions.returnHydratedModel(planImageModel,img)       
-            let name = hi.image_type + " "+ memoryZuids.plan + " " + hi.sort_order
+            let name = hi.image_type + " "+ planZUID + " " + hi.sort_order
 
             // insert into zesty, grab zuid on return, and set into memory object
             try {
@@ -324,42 +325,43 @@ async function extractPlanImages(imageType,images){
 }
 
 
-async function extractSpecs(specs){
+async function extractSpecs(specs, planZUID){
     
     if(typeof specs !== "undefined"){
 
         specs = Array.isArray(specs) ? specs : [specs]
 
         // get parent path from the plan zuid
-        let pageParent = await searchZesty(zestyAPI, memoryZuids.plan)
-        console.log('plans parent: ' +memoryZuids.plan)
+        let pageParent = await searchZesty(zestyAPI, planZUID)
+        console.log('plans parent: ' +planZUID)
         let pathParent = pageParent[0].web.path
        
 
         return Promise.all(specs.map(async spec => {
-            spec.home_model = memoryZuids.plan
+            spec.home_model = planZUID
             let hs = await dataFunctions.returnHydratedModel(specModel,spec)
 
             // insert into zesty, grab zuid on return, and set into memory object
+            let specZUID
             try {
-                memoryZuids.spec = await importContent(
+                specZUID = await importContent(
                     zestyAPI,
                     pathParent+dataFunctions.makePathPart(hs.spec_id)+'/',
                     hs.spec_id, 
                     hs.spec_description, 
                     zestyModelZUIDs.specs,
                     hs,
-                    memoryZuids.plan
+                    planZUID
                     )
             } catch (err) {
                 console.log(err)
             }
-
+            memoryZuids.spec = specZUID
             // add to zesty here 
             if(spec.SpecImages !== undefined){
-                hs.specElevationImages = await extractPlanSpecImages("elevation",spec.SpecImages.SpecElevationImage)
-                hs.specInteriorImages = await extractPlanSpecImages("interior",spec.SpecImages.SpecInteriorImage)
-                hs.specFloorPlanImages = await extractPlanSpecImages("floorplan",spec.SpecImages.SpecFloorPlanImage)
+                hs.specElevationImages = await extractPlanSpecImages("elevation",spec.SpecImages.SpecElevationImage,specZUID)
+                hs.specInteriorImages = await extractPlanSpecImages("interior",spec.SpecImages.SpecInteriorImage,specZUID)
+                hs.specFloorPlanImages = await extractPlanSpecImages("floorplan",spec.SpecImages.SpecFloorPlanImage,specZUID)
             }
             return hs
         }))
@@ -368,14 +370,14 @@ async function extractSpecs(specs){
     }   
 }
 
-async function extractPlanSpecImages(imageType,images){
+async function extractPlanSpecImages(imageType,images, specZUID){
     
     if(Array.isArray(images)){
         return Promise.all(images.map(async img => {  
-            img.related_spec = memoryZuids.spec
+            img.related_spec = specZUID
             img.image_type = imageType
             let hi =  await dataFunctions.returnHydratedModel(specImageModel,img)       
-            let name = hi.image_type + " "+ memoryZuids.plan + " " + hi.sort_order
+            let name = imageType + " "+ specZUID + " " + hi.sort_order
 
             // insert into zesty, grab zuid on return, and set into memory object
             try {
