@@ -327,19 +327,41 @@ async function extractPlanImages(imageType,images){
 async function extractSpecs(specs){
     
     if(typeof specs !== "undefined"){
+
         specs = Array.isArray(specs) ? specs : [specs]
 
+        // get parent path from the plan zuid
+        let pageParent = await searchZesty(zestyAPI, memoryZuids.plan)
+        console.log('plans parent: ' +memoryZuids.plan)
+        let pathParent = pageParent[0].web.path
+       
+
         return Promise.all(specs.map(async spec => {
-            spec.related_model = memoryZuids.plan
-            let sc = await dataFunctions.returnHydratedModel(specModel,spec)
+            spec.home_model = memoryZuids.plan
+            let hs = await dataFunctions.returnHydratedModel(specModel,spec)
+
+            // insert into zesty, grab zuid on return, and set into memory object
+            try {
+                memoryZuids.spec = await importContent(
+                    zestyAPI,
+                    pathParent+dataFunctions.makePathPart(hs.spec_id)+'/',
+                    hs.spec_id, 
+                    hs.spec_description, 
+                    zestyModels.specs,
+                    hs,
+                    memoryZuids.plan
+                    )
+            } catch (err) {
+                console.log(err)
+            }
 
             // add to zesty here 
             if(spec.SpecImages !== undefined){
-                sc.specElevationImages = await extractPlanSpecImages("elevation",spec.SpecImages.SpecElevationImage)
-                sc.specInteriorImages = await extractPlanSpecImages("interior",spec.SpecImages.SpecInteriorImage)
-                sc.specFloorPlanImages = await extractPlanSpecImages("floorplan",spec.SpecImages.SpecFloorPlanImage)
+                hs.specElevationImages = await extractPlanSpecImages("elevation",spec.SpecImages.SpecElevationImage)
+                hs.specInteriorImages = await extractPlanSpecImages("interior",spec.SpecImages.SpecInteriorImage)
+                hs.specFloorPlanImages = await extractPlanSpecImages("floorplan",spec.SpecImages.SpecFloorPlanImage)
             }
-            return sc
+            return hs
         }))
     } else {
         return []
