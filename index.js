@@ -102,7 +102,7 @@ const exportBDXIntegration = async (req, res) => {
     try {
          zestyAPI = new Zesty(process.env.ZESTY_INSTANCE_ZUID, token, {
             logErrors: true,
-            logResponses: true
+            logResponses: false
         });
     } catch (err) {
         console.log(err);
@@ -272,7 +272,7 @@ async function extractCommunityImages(images){
         let hi = await dataFunctions.returnHydratedModel(communityImageModel,img)       
         // insert into zesty, grab zuid on return, and set into memory object
         try {
-            importContent(
+            await importContent(
                 zestyAPI,
                 hi.title,
                 hi.title,
@@ -294,10 +294,29 @@ async function extractCommunityImages(images){
 async function extractPlanImages(imageType,images){
     
     if(Array.isArray(images)){
-        return Promise.all(images.map(img => {
+        return Promise.all(images.map(async img => {
             img.related_model = memoryZuids.plan
             img.image_type = imageType
-            return dataFunctions.returnHydratedModel(planImageModel,img)       
+            let hi = await dataFunctions.returnHydratedModel(planImageModel,img)       
+            let name = hi.image_type + " "+ memoryZuids.plan + " " + hi.sort_order
+
+            // insert into zesty, grab zuid on return, and set into memory object
+            try {
+                await importContent(
+                    zestyAPI,
+                    name,
+                    name,
+                    "", 
+                    zestyModels.planImages,
+                    hi,
+                    '',
+                    true
+                    )
+            } catch (err) {
+                console.log(err)
+            }
+
+            return hi
         }))
     } else {
         return []
@@ -380,10 +399,11 @@ async function importContent(zestyObj, preexistingSearchString, title, descripti
     let zestyItem = contentModelItemShape
     zestyItem.data = data
     zestyItem.web = returnWebData(title, description)
+    
     zestyItem.web.parentZUID = parentZuid
     zestyItem.meta = returnMetaData(contentModelZUID,parentZuid)
+    delete zestyItem.meta.parentZUID
 
-    console.log(zestyItem)
     if(dataset == true){
         delete zestyItem.web.pathPart
     }
